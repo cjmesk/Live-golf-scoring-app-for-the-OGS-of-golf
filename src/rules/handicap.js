@@ -4,7 +4,7 @@ window.OGSGolf.rules = window.OGSGolf.rules || {};
 window.OGSGolf.rules.getCourseHandicapDetails = function getCourseHandicapDetails(player, course, teeId = player.tee) {
   const teeRating = course.teeRatings[teeId];
   const teePar = teeRating.par || course.par;
-  const handicapIndex = Number(player.handicap) || 0;
+  const handicapIndex = Number(player.handicapIndex ?? player.handicap) || 0;
   const unrounded = handicapIndex * (teeRating.slopeRating / 113) + (teeRating.courseRating - teePar);
 
   return {

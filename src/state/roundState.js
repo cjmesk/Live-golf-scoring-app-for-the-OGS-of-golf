@@ -9,6 +9,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
 ) {
   const {
     getCourseHandicap,
+    getCourseHandicapDetails,
     getNetScore,
     getPoints,
     getSkinWinner,
@@ -421,6 +422,29 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     const mode = roundSettings.games.netSkins?.skinsHandicapMode || "half";
     const skinStrokeValue = mode === "half" ? 0.5 : 1;
     return Number(grossScore) - (strokesReceived * skinStrokeValue);
+  }
+
+  function rebuildSavedHoleResultForPlayer(player) {
+    savedScores[player.id].forEach((score, holeIndex) => {
+      if (!isSavedGrossScore(score)) return;
+
+      const grossScore = Number(score);
+      const strokesReceived = getStrokesForPlayerOnHole(player, holeIndex);
+      const netScore = getNetScore(grossScore, strokesReceived);
+      const skinScore = getSkinScore(grossScore, strokesReceived);
+      const existingHoleResults = savedHoleResults[holeIndex] || [];
+
+      savedHoleResults[holeIndex] = [
+        ...existingHoleResults.filter((result) => result.playerId !== player.id),
+        {
+          playerId: player.id,
+          grossScore,
+          strokesReceived,
+          netScore,
+          skinScore
+        }
+      ];
+    });
   }
 
   function recalculateSkins() {
@@ -1297,6 +1321,74 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     applyCloudHoleScores(scoreRows);
   }
 
+  function updateRoundPlayerHandicap(playerId, handicapIndex) {
+    const player = players.find((item) => item.id === playerId);
+    const newHandicapIndex = Number(handicapIndex);
+
+    if (!player || !Number.isFinite(newHandicapIndex)) return null;
+
+    const previousHandicapIndex = Number(player.handicap ?? player.handicapIndex ?? 0);
+    const previousCourseHandicap = Number(courseHandicaps[player.id] ?? getCourseHandicap(player, course));
+    const details = getCourseHandicapDetails(
+      {
+        ...player,
+        handicap: newHandicapIndex,
+        handicapIndex: newHandicapIndex
+      },
+      course,
+      player.tee
+    );
+
+    player.handicap = newHandicapIndex;
+    player.handicapIndex = newHandicapIndex;
+    player.courseHandicap = details.courseHandicap;
+    courseHandicaps[player.id] = details.courseHandicap;
+
+    rebuildSavedHoleResultForPlayer(player);
+    recalculateSkins();
+    loadDraftScores();
+
+    return {
+      player,
+      previousHandicapIndex,
+      previousCourseHandicap,
+      newHandicapIndex,
+      newCourseHandicap: details.courseHandicap,
+      details
+    };
+  }
+
+  function applyCloudRoundPlayers(roundPlayerRows = []) {
+    roundPlayerRows.forEach((row) => {
+      const player = players.find((item) => item.id === row.player_id);
+
+      if (!player) return;
+
+      const handicapIndex = Number(row.handicap_index ?? player.handicap ?? player.handicapIndex ?? 0);
+      const courseHandicap = Number(row.course_handicap);
+
+      if (row.tee) player.tee = row.tee;
+
+      if (Number.isFinite(handicapIndex)) {
+        player.handicap = handicapIndex;
+        player.handicapIndex = handicapIndex;
+      }
+
+      if (Number.isFinite(courseHandicap)) {
+        player.courseHandicap = courseHandicap;
+        courseHandicaps[player.id] = courseHandicap;
+      } else if (Number.isFinite(handicapIndex)) {
+        courseHandicaps[player.id] = getCourseHandicap(player, course);
+        player.courseHandicap = courseHandicaps[player.id];
+      }
+
+      rebuildSavedHoleResultForPlayer(player);
+    });
+
+    recalculateSkins();
+    loadDraftScores();
+  }
+
   function applyCloudPlayerStatuses(statusRows = []) {
     if (statusRows.length === 0) {
       roundSettings.playerStatuses = playerStatuses;
@@ -1429,6 +1521,8 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     saveCurrentHole,
     applyCloudHoleScores,
     replaceSavedScoresFromCloud,
+    updateRoundPlayerHandicap,
+    applyCloudRoundPlayers,
     applyCloudPlayerStatuses,
     markPlayerDnf,
     restorePlayerActive,

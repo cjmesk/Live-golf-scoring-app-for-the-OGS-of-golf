@@ -698,6 +698,23 @@ body.is-scoring .current-hole-status {
   font-weight: 800;
 }
 
+.handicap-adjust-panel h3 {
+  margin: 0;
+  color: var(--green-dark);
+  font-size: 1.05rem;
+}
+
+.handicap-adjust-details {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.handicap-adjust-details strong {
+  color: var(--ink);
+}
+
 .dnf-confirm-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

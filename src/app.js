@@ -41,6 +41,7 @@ let currentScorerId = null;
 let commissionerMode = scorerStorage.isCommissioner();
 let viewOnlyMode = false;
 let pendingDnfPlayerId = null;
+let pendingHandicapPlayerId = null;
 let scoreOverrideOpen = false;
 let scoreOverrideActive = false;
 let scoreOverrideReturnGroupIndex = 0;
@@ -1262,6 +1263,149 @@ function closeDnfConfirmation() {
   elements.dnfConfirmMessage.textContent = "";
 }
 
+function openHandicapAdjust(playerId) {
+  if (!commissionerMode || !roundState) return;
+
+  const player = selectedPlayers.find((item) => item.id === playerId);
+  if (!player) return;
+
+  pendingHandicapPlayerId = playerId;
+  elements.handicapAdjustPlayerName.textContent = player.name;
+  elements.currentHandicapIndex.textContent = String(player.handicap ?? player.handicapIndex ?? 0);
+  elements.currentCourseHandicap.textContent = String(roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? 0);
+  elements.newHandicapIndex.value = String(player.handicap ?? player.handicapIndex ?? "");
+  elements.handicapAdjustStatus.textContent = "This change applies to this round only.";
+  elements.handicapAdjustPanel.classList.remove("is-hidden");
+  elements.handicapAdjustPanel.scrollIntoView({ behavior: "auto", block: "center" });
+  elements.newHandicapIndex.focus();
+}
+
+function closeHandicapAdjust() {
+  pendingHandicapPlayerId = null;
+  elements.handicapAdjustPanel.classList.add("is-hidden");
+  elements.handicapAdjustStatus.textContent = "";
+}
+
+function buildRoundPlayerCloudRow(player) {
+  return {
+    id: `${roundState.id}:${player.id}`,
+    round_id: roundState.id,
+    player_id: player.id,
+    tee: player.tee,
+    handicap_index: Number(player.handicap ?? player.handicapIndex ?? 0),
+    course_handicap: Number(roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? 0),
+    group_id: getCloudGroupId(getPlayerGroupIndex(player.id)),
+    playing: true,
+    skins_enabled: roundState.isInSkins(player),
+    points_enabled: roundState.isInPoints(player)
+  };
+}
+
+function syncActiveRoundPlayerSnapshot(player) {
+  selectedPlayers = selectedPlayers.map((item) =>
+    item.id === player.id
+      ? {
+        ...item,
+        handicap: player.handicap,
+        handicapIndex: player.handicapIndex,
+        courseHandicap: player.courseHandicap
+      }
+      : item
+  );
+
+  if (roundSettings?.players) {
+    roundSettings.players = roundSettings.players.map((item) =>
+      item.id === player.id
+        ? {
+          ...item,
+          handicap: player.handicap,
+          handicapIndex: player.handicapIndex,
+          courseHandicap: player.courseHandicap
+        }
+        : item
+    );
+  }
+}
+
+async function updatePlayerSavedHoleScoresForHandicap(player) {
+  const scoresResult = await roundCloudService.fetchPlayerHoleScores({
+    roundId: roundState.id,
+    playerId: player.id
+  });
+
+  if (!scoresResult.ok) return scoresResult;
+
+  for (const score of scoresResult.scores) {
+    const holeNumber = Number(score.hole);
+    const strokesReceived = Number(roundState.getStrokesForPlayerOnHole(player, holeNumber - 1) || 0);
+    const result = await roundCloudService.upsertPlayerHoleScore({
+      round_id: roundState.id,
+      group_id: score.group_id || getCloudGroupId(getPlayerGroupIndex(player.id)),
+      player_id: player.id,
+      hole: holeNumber,
+      gross: Number(score.gross),
+      strokes_received: strokesReceived,
+      updated_by: currentScorerId || "commissioner"
+    });
+
+    if (!result.ok) return result;
+  }
+
+  return { ok: true };
+}
+
+async function saveHandicapAdjust() {
+  if (!commissionerMode || !roundState || !pendingHandicapPlayerId) return;
+
+  const player = selectedPlayers.find((item) => item.id === pendingHandicapPlayerId);
+  const newHandicapIndex = Number(elements.newHandicapIndex.value);
+
+  if (!player || !Number.isFinite(newHandicapIndex)) {
+    elements.handicapAdjustStatus.textContent = "Enter a valid GHIN index.";
+    return;
+  }
+
+  elements.saveHandicapAdjust.disabled = true;
+  elements.handicapAdjustStatus.textContent = "Saving round handicap...";
+
+  const update = roundState.updateRoundPlayerHandicap(player.id, newHandicapIndex);
+
+  if (!update) {
+    elements.saveHandicapAdjust.disabled = false;
+    elements.handicapAdjustStatus.textContent = "Handicap update failed.";
+    return;
+  }
+
+  syncActiveRoundPlayerSnapshot(update.player);
+
+  const roundPlayerResult = await roundCloudService.upsertRoundPlayer(buildRoundPlayerCloudRow(update.player));
+
+  if (!roundPlayerResult.ok) {
+    elements.saveHandicapAdjust.disabled = false;
+    elements.handicapAdjustStatus.textContent =
+      `${roundPlayerResult.message || "Cloud round-player save failed."} The local round was updated on this device.`;
+    renderApp();
+    return;
+  }
+
+  const holeScoreResult = await updatePlayerSavedHoleScoresForHandicap(update.player);
+
+  if (!holeScoreResult.ok) {
+    elements.saveHandicapAdjust.disabled = false;
+    elements.handicapAdjustStatus.textContent =
+      `${holeScoreResult.message || "Cloud score recalculation failed."} Gross scores were preserved.`;
+    renderApp();
+    return;
+  }
+
+  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex);
+  elements.saveHandicapAdjust.disabled = false;
+  closeHandicapAdjust();
+  renderApp();
+  elements.saveStatusMessage.textContent =
+    `${player.name}\nRound GHIN changed from ${update.previousHandicapIndex} to ${update.newHandicapIndex}\nCourse Handicap changed from ${update.previousCourseHandicap} to ${update.newCourseHandicap}\nThis change applies to this round only.`;
+}
+
 async function confirmPlayerDnf() {
   if (!pendingDnfPlayerId || !roundState || !canEditCurrentGroup()) return;
 
@@ -1869,6 +2013,7 @@ function mergeActiveRound(localRound, cloudRound, savedGroupIndex, savedHoleInde
     currentGroupIndex: localRound.currentGroupIndex,
     currentHoleIndex: localRound.currentHoleIndex,
     currentHole: localRound.currentHole,
+    players: localRound.players || cloudRound.players || [],
     groupHoleIndexes: [...(cloudRound.groupHoleIndexes || localRound.groupHoleIndexes || [])],
     playerStatuses: localRound.playerStatuses || cloudRound.playerStatuses || {},
     savedScores: {
@@ -2593,6 +2738,7 @@ async function applyCloudScoreStateForActiveRound(roundId) {
 
   applyCloudGroupsToRoundSettings(groupsResult.groups);
   roundState.replaceSavedScoresFromCloud(scoresResult.scores);
+  roundState.applyCloudRoundPlayers(playersResult.players);
   roundState.applyCloudPlayerStatuses(statusesResult.statuses);
   syncAllGroupCompletionsFromScores();
   syncRoundStateToCurrentGroup();
@@ -2844,6 +2990,7 @@ elements.holePlayers.addEventListener("click", (event) => {
 
   const dnfButton = event.target.closest("[data-dnf-player-id]");
   const restoreButton = event.target.closest("[data-restore-player-id]");
+  const adjustHandicapButton = event.target.closest("[data-adjust-handicap-player-id]");
 
   if (dnfButton) {
     openDnfConfirmation(dnfButton.dataset.dnfPlayerId);
@@ -2852,6 +2999,11 @@ elements.holePlayers.addEventListener("click", (event) => {
 
   if (restoreButton) {
     restorePlayerToActive(restoreButton.dataset.restorePlayerId);
+    return;
+  }
+
+  if (adjustHandicapButton) {
+    openHandicapAdjust(adjustHandicapButton.dataset.adjustHandicapPlayerId);
     return;
   }
 
@@ -2875,6 +3027,8 @@ elements.holePlayers.addEventListener("input", (event) => {
 });
 elements.cancelDnf.addEventListener("click", closeDnfConfirmation);
 elements.confirmDnf.addEventListener("click", confirmPlayerDnf);
+elements.cancelHandicapAdjust.addEventListener("click", closeHandicapAdjust);
+elements.saveHandicapAdjust.addEventListener("click", saveHandicapAdjust);
 
 elements.previousHole.addEventListener("click", () => {
   if (!roundState) return;

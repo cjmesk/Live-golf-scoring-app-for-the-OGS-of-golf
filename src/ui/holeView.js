@@ -26,7 +26,10 @@ window.OGSGolf.ui.renderHoleView = function renderHoleView(elements, course, pla
       ? options.commissionerMode
         ? `<button type="button" class="player-option-button" data-restore-player-id="${player.id}">Restore Player to Active</button>`
         : ""
-      : `<button type="button" class="player-option-button" data-dnf-player-id="${player.id}">End Player Round - DNF</button>`;
+      : `
+        <button type="button" class="player-option-button" data-dnf-player-id="${player.id}">End Player Round - DNF</button>
+        ${options.commissionerMode ? `<button type="button" class="player-option-button" data-adjust-handicap-player-id="${player.id}">Adjust Handicap</button>` : ""}
+      `;
     const playerRow = document.createElement("article");
     playerRow.className = `hole-player scorekeeper-player${isDnf ? " is-dnf-player" : ""}`;
     playerRow.innerHTML = `
