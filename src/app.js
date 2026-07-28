@@ -18,6 +18,7 @@ const {
   renderGroupSetupView,
   renderHoleView,
   renderLeaderboard,
+  renderPlayerScorecard,
   renderPlayerManagement,
   renderPointsPayout,
   renderPreviousRounds,
@@ -47,12 +48,72 @@ let scoreOverrideActive = false;
 let scoreOverrideReturnGroupIndex = 0;
 let summaryDisplayRoundState = null;
 let summaryReadOnlyMode = false;
+let playerScorecardReturnScreen = "round";
+let playerScorecardState = null;
+let playerScorecardPlayerId = "";
 let finalRoundSyncInFlight = false;
 let latestCloudActiveRoundInfo = {
   id: "",
   cloudUpdatedAt: "",
   details: ""
 };
+
+function closeMobilePlayerOptions() {
+  const openSheet = elements.holePlayers.querySelector(".mobile-player-options-overlay");
+
+  if (openSheet) openSheet.remove();
+
+  elements.holePlayers
+    .querySelectorAll(".player-options-menu[open]")
+    .forEach((menu) => menu.removeAttribute("open"));
+}
+
+function openMobilePlayerOptions(menu) {
+  closeMobilePlayerOptions();
+
+  const playerRow = menu.closest(".scorekeeper-player");
+  const playerName = playerRow?.querySelector(".player-name")?.textContent?.trim() || "Player";
+  const optionsList = menu.querySelector(".player-options-list");
+
+  if (!optionsList) return;
+
+  const overlay = document.createElement("div");
+  overlay.className = "mobile-player-options-overlay";
+  overlay.innerHTML = `
+    <div class="mobile-player-options-sheet" role="dialog" aria-modal="true" aria-label="${playerName} player options">
+      <div class="mobile-player-options-header">
+        <span>Player Options</span>
+        <strong>${playerName}</strong>
+      </div>
+      <div class="mobile-player-options-actions">
+        ${optionsList.innerHTML}
+        <button type="button" class="player-option-button" data-close-player-options>Cancel</button>
+      </div>
+    </div>
+  `;
+
+  elements.holePlayers.appendChild(overlay);
+}
+
+function positionDesktopPlayerOptions(menu) {
+  menu.classList.remove("opens-up");
+
+  if (!menu.open) return;
+
+  const summary = menu.querySelector("summary");
+  const optionsList = menu.querySelector(".player-options-list");
+
+  if (!summary || !optionsList) return;
+
+  const summaryBox = summary.getBoundingClientRect();
+  const optionsHeight = optionsList.getBoundingClientRect().height || 190;
+  const spaceBelow = window.innerHeight - summaryBox.bottom - 12;
+  const spaceAbove = summaryBox.top - 12;
+
+  if (spaceBelow < optionsHeight && spaceAbove > spaceBelow) {
+    menu.classList.add("opens-up");
+  }
+}
 
 function isDebugModeEnabled() {
   const urlDebugMode = new URLSearchParams(window.location.search).get("debug") === "1";
@@ -70,6 +131,7 @@ function setActiveScreen(screenName) {
   elements.eventSummaryScreen.classList.toggle("is-hidden", screenName !== "eventSummary");
   elements.roundScreen.classList.toggle("is-hidden", screenName !== "round");
   elements.summaryScreen.classList.toggle("is-hidden", screenName !== "summary");
+  elements.playerScorecardScreen.classList.toggle("is-hidden", screenName !== "playerScorecard");
   elements.previousRoundsScreen.classList.toggle("is-hidden", screenName !== "previous");
   elements.playerManagementScreen.classList.toggle("is-hidden", screenName !== "players");
   elements.courseInfoScreen.classList.toggle("is-hidden", screenName !== "courseInfo");
@@ -1223,6 +1285,13 @@ function renderGroupScoreReview() {
 
   elements.groupScoreReview.innerHTML = `
     <h3>Review Group ${currentGroupIndex + 1} Scores</h3>
+    <div class="group-review-player-links">
+      ${players.map((player) => `
+        <button type="button" class="player-scorecard-link" data-open-player-scorecard="${player.id}">
+          ${escapeText(player.name)}
+        </button>
+      `).join("")}
+    </div>
     <div class="group-review-list">
       ${holeRows}
       ${isNineHoleRound
@@ -1577,6 +1646,7 @@ function renderApp() {
   renderRoundSettingsSummary(elements, roundSettings);
   renderCurrentHole();
   renderLeaderboard(elements, selectedPlayers, roundState);
+  refreshOpenPlayerScorecard();
   elements.roundSettingsSummary.closest(".round-settings-section").classList.add("is-hidden");
   elements.pointsPayout.closest(".points-payout-section").classList.add("is-hidden");
   elements.skinsSummary.closest(".skins-section").classList.add("is-hidden");
@@ -1622,6 +1692,75 @@ function showLeaderboardPage(leaderboardState = roundState, leaderboardPlayers =
   renderLeaderboard(elements, playersToRender, stateToRender);
   elements.roundScreen.classList.add("is-leaderboard-view");
   scrollToTop();
+}
+
+function getCurrentVisibleScreen() {
+  if (!elements.summaryScreen.classList.contains("is-hidden")) return "summary";
+  if (!elements.roundScreen.classList.contains("is-hidden")) return "round";
+  if (!elements.previousRoundsScreen.classList.contains("is-hidden")) return "previous";
+  return "today";
+}
+
+function getScorecardRoundState() {
+  if (!elements.summaryScreen.classList.contains("is-hidden") && summaryDisplayRoundState) {
+    return summaryDisplayRoundState;
+  }
+
+  return roundState || summaryDisplayRoundState;
+}
+
+function openPlayerScorecard(playerId, sourceLabel = "") {
+  const scorecardState = getScorecardRoundState();
+
+  if (!scorecardState) return;
+
+  const player = scorecardState.getFinalSummary().playerTotals
+    .map((item) => item.player)
+    .find((item) => item.id === playerId);
+
+  if (!player) return;
+
+  playerScorecardReturnScreen = getCurrentVisibleScreen();
+  playerScorecardState = scorecardState;
+  playerScorecardPlayerId = playerId;
+  renderPlayerScorecard(elements, scorecardState, player, {
+    returnLabel: sourceLabel || (playerScorecardReturnScreen === "summary" ? "Return to Results" : "Return to Leaderboard")
+  });
+  setActiveScreen("playerScorecard");
+  scrollToTop();
+}
+
+function closePlayerScorecard() {
+  const returnScreen = playerScorecardReturnScreen || "round";
+
+  if (returnScreen === "summary") {
+    setActiveScreen("summary");
+  } else if (returnScreen === "previous") {
+    setActiveScreen("previous");
+  } else if (roundState) {
+    setActiveScreen("round");
+  } else {
+    setActiveScreen("today");
+  }
+
+  playerScorecardState = null;
+  playerScorecardPlayerId = "";
+  scrollToTop();
+}
+
+function refreshOpenPlayerScorecard() {
+  if (elements.playerScorecardScreen.classList.contains("is-hidden")) return;
+  if (!playerScorecardState || !playerScorecardPlayerId) return;
+
+  const player = playerScorecardState.getFinalSummary().playerTotals
+    .map((item) => item.player)
+    .find((item) => item.id === playerScorecardPlayerId);
+
+  if (!player) return;
+
+  renderPlayerScorecard(elements, playerScorecardState, player, {
+    returnLabel: playerScorecardReturnScreen === "summary" ? "Return to Results" : "Return to Leaderboard"
+  });
 }
 
 function getAssignedGroupIndex(playerId) {
@@ -2988,21 +3127,46 @@ elements.holePlayers.addEventListener("click", (event) => {
   if (!roundState) return;
   if (!canEditCurrentGroup()) return;
 
+  const closeOptionsButton = event.target.closest("[data-close-player-options]");
+  const optionsSummary = event.target.closest(".player-options-menu summary");
+
+  if (closeOptionsButton) {
+    closeMobilePlayerOptions();
+    return;
+  }
+
+  if (optionsSummary) {
+    const menu = optionsSummary.closest(".player-options-menu");
+    const isPhoneWidth = window.matchMedia("(max-width: 639px)").matches;
+
+    if (isPhoneWidth) {
+      event.preventDefault();
+      openMobilePlayerOptions(menu);
+      return;
+    }
+
+    window.setTimeout(() => positionDesktopPlayerOptions(menu), 0);
+    return;
+  }
+
   const dnfButton = event.target.closest("[data-dnf-player-id]");
   const restoreButton = event.target.closest("[data-restore-player-id]");
   const adjustHandicapButton = event.target.closest("[data-adjust-handicap-player-id]");
 
   if (dnfButton) {
+    closeMobilePlayerOptions();
     openDnfConfirmation(dnfButton.dataset.dnfPlayerId);
     return;
   }
 
   if (restoreButton) {
+    closeMobilePlayerOptions();
     restorePlayerToActive(restoreButton.dataset.restorePlayerId);
     return;
   }
 
   if (adjustHandicapButton) {
+    closeMobilePlayerOptions();
     openHandicapAdjust(adjustHandicapButton.dataset.adjustHandicapPlayerId);
     return;
   }
@@ -3014,6 +3178,29 @@ elements.holePlayers.addEventListener("click", (event) => {
   const amount = button.dataset.action === "increase" ? 1 : -1;
   roundState.changeDraftScore(button.dataset.playerId, amount);
   renderCurrentHole();
+});
+document.addEventListener("click", (event) => {
+  const scorecardLink = event.target.closest("[data-open-player-scorecard]");
+  const scorecardBackButton = event.target.closest("#backFromPlayerScorecard");
+
+  if (scorecardLink) {
+    event.preventDefault();
+    openPlayerScorecard(scorecardLink.dataset.openPlayerScorecard);
+    return;
+  }
+
+  if (scorecardBackButton) {
+    event.preventDefault();
+    closePlayerScorecard();
+    return;
+  }
+
+  const clickedPlayerOptions = event.target.closest(".player-options-menu, .mobile-player-options-sheet");
+
+  if (!clickedPlayerOptions) closeMobilePlayerOptions();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeMobilePlayerOptions();
 });
 elements.holePlayers.addEventListener("input", (event) => {
   if (!roundState) return;

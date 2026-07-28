@@ -55,6 +55,10 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
     return section;
   }
 
+  function renderPlayerNameButton(player, label = player.name) {
+    return `<button type="button" class="player-name player-scorecard-link" data-open-player-scorecard="${player.id}">${label}</button>`;
+  }
+
   function addRankLabels(standings, isTie) {
     let currentRank = 1;
 
@@ -84,7 +88,7 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
     row.innerHTML = `
       <div class="rank">${standing.rankLabel}</div>
       <div>
-        <div class="player-name">${player.name}</div>
+        ${renderPlayerNameButton(player)}
         <div class="player-details">Index ${player.handicap} | Course Handicap ${roundState.courseHandicaps[player.id]} | ${player.tee} tees</div>
         <div class="player-details">${isDnf ? dnfText : `${totals.holesPlayed}/${totalHoles} holes saved`}</div>
         <div class="player-details">${getGameStatus(player)}</div>
@@ -110,7 +114,7 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
     row.innerHTML = `
       <div class="rank">${standing.rankLabel}</div>
       <div>
-        <div class="player-name">${player.name} ${overallPointsResult.display}</div>
+        ${renderPlayerNameButton(player, `${player.name} ${overallPointsResult.display}`)}
         <div class="player-details">Front: ${totals.frontPoints} pts (Target: ${frontPointsResult.target}) ${frontPointsResult.display}</div>
         <div class="player-details">Back: ${totals.backPoints} pts (Target: ${backPointsResult.target}) ${backPointsResult.display}</div>
         <div class="player-details">Total: ${totals.points} pts (Target: ${overallPointsResult.target}) ${overallPointsResult.display}</div>
@@ -155,7 +159,7 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
     row.innerHTML = `
       <div class="rank">${standing.rankLabel}</div>
       <div>
-        <div class="player-name">${player.name}</div>
+        ${renderPlayerNameButton(player)}
         <div class="player-details">${skins.totalSkins} skin${skins.totalSkins === 1 ? "" : "s"} won</div>
         <div class="player-details">${formatSkinHoleDetails(skins.holesWonDetails)}</div>
         <div class="player-details">${estimatedText}</div>

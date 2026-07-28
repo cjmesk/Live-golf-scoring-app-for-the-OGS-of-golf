@@ -1,0 +1,259 @@
+window.OGSGolf = window.OGSGolf || {};
+window.OGSGolf.ui = window.OGSGolf.ui || {};
+
+window.OGSGolf.ui.renderPlayerScorecard = function renderPlayerScorecard(elements, roundState, player, options = {}) {
+  const { getHoleResult, getPoints } = window.OGSGolf.rules;
+  const totalHoles = roundState.totalHoles || 18;
+  const payoutSummary = roundState.getPayoutSummary?.();
+  const skinsSummary = roundState.getSkinSummary?.() || {};
+  const playerSkins = skinsSummary[player.id] || { totalSkins: 0, holesWon: [], holesWonDetails: [] };
+  const dnfStatus = roundState.getPlayerDnfStatus(player);
+  const totals = roundState.getPlayerTotals(player);
+  const statusText = dnfStatus
+    ? "DNF"
+    : roundState.isRoundComplete?.()
+      ? "Complete"
+      : "In Progress";
+  const returnLabel = options.returnLabel || "Back";
+
+  function formatCurrency(value) {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? `$${numericValue.toFixed(2)}` : "-";
+  }
+
+  function formatSigned(value) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return "-";
+    if (numericValue === 0) return "Even";
+    return `${numericValue > 0 ? "+" : ""}${numericValue}`;
+  }
+
+  function hasScore(score) {
+    return score !== null
+      && score !== undefined
+      && score !== ""
+      && Number.isFinite(Number(score))
+      && Number(score) > 0;
+  }
+
+  function getPlayerPointsPayout(section) {
+    const payouts = payoutSummary?.points?.[`${section}Payouts`]
+      || payoutSummary?.points?.[section]?.payouts
+      || payoutSummary?.points?.[section]?.winners
+      || [];
+    const payout = payouts.find((winner) => winner.playerId === player.id);
+    return Number(payout?.payout || 0);
+  }
+
+  function getPlayerSkinsPayout() {
+    const payout = payoutSummary?.skins?.winners?.find((winner) => winner.playerId === player.id);
+    return Number(payout?.payout || 0);
+  }
+
+  function getSideHoleIndexes(side) {
+    return side === "front"
+      ? Array.from({ length: 9 }, (_, index) => index)
+      : Array.from({ length: 9 }, (_, index) => index + 9);
+  }
+
+  function getSideSummary(side) {
+    const holeIndexes = side === "total"
+      ? Array.from({ length: totalHoles }, (_, index) => index)
+      : getSideHoleIndexes(side);
+    const completedIndexes = holeIndexes.filter((holeIndex) => hasScore(roundState.savedScores[player.id]?.[holeIndex]));
+    const par = completedIndexes.reduce((sum, holeIndex) =>
+      sum + Number(roundState.getHoleForPlayer(player, holeIndex).par || 0),
+    0);
+    const gross = completedIndexes.reduce((sum, holeIndex) =>
+      sum + Number(roundState.savedScores[player.id]?.[holeIndex] || 0),
+    0);
+    const net = completedIndexes.reduce((sum, holeIndex) => {
+      const result = roundState.getPlayerHoleResult(player, holeIndex);
+      return Number.isFinite(Number(result?.netScore)) ? sum + Number(result.netScore) : sum;
+    }, 0);
+    const points = completedIndexes.reduce((sum, holeIndex) => {
+      const grossScore = roundState.savedScores[player.id]?.[holeIndex];
+      const hole = roundState.getHoleForPlayer(player, holeIndex);
+      return sum + (roundState.isInPoints(player) && !dnfStatus ? getPoints(grossScore, hole.par) : 0);
+    }, 0);
+    const skinsWon = completedIndexes.filter((holeIndex) =>
+      roundState.getSkinForHole(holeIndex)?.winnerId === player.id
+    ).length;
+    const pointsResult = side === "front" || side === "back"
+      ? roundState.getPointsDifferential(player, side)
+      : roundState.getPointsDifferential(player, "overall");
+
+    return {
+      holes: completedIndexes.length,
+      par,
+      gross,
+      net,
+      points,
+      pointsTarget: roundState.isInPoints(player) ? pointsResult.target : null,
+      pointsVsTarget: roundState.isInPoints(player) ? pointsResult.display : "-",
+      grossToPar: completedIndexes.length ? gross - par : null,
+      netToPar: completedIndexes.length ? net - par : null,
+      skinsWon
+    };
+  }
+
+  function getGrossClass(score, par) {
+    if (!hasScore(score)) return "";
+
+    const result = getHoleResult(score, par);
+    if (result === "Eagle" || result === "Albatross" || result === "Condor") return "score-result-badge score-result-eagle";
+    if (result === "Birdie") return "score-result-badge score-result-birdie";
+    if (result === "Bogey") return "score-result-badge score-result-bogey";
+    if (result === "Double Bogey" || result === "Triple Bogey" || result === "Quadruple Bogey" || result.startsWith("+")) {
+      return "score-result-badge score-result-double";
+    }
+    return "score-result-neutral";
+  }
+
+  function renderCell(value, className = "") {
+    return `<td>${value === null || value === undefined || value === "" ? "-" : `<span class="${className}">${value}</span>`}</td>`;
+  }
+
+  function renderGrid(title, holeIndexes, totalLabel) {
+    const holeHeader = holeIndexes.map((holeIndex) => `<th scope="col">${holeIndex + 1}</th>`).join("");
+    const holes = holeIndexes.map((holeIndex) => roundState.getHoleForPlayer(player, holeIndex));
+    const scores = holeIndexes.map((holeIndex) => roundState.savedScores[player.id]?.[holeIndex]);
+    const completedIndexes = holeIndexes.filter((holeIndex) => hasScore(roundState.savedScores[player.id]?.[holeIndex]));
+    const totalGross = completedIndexes.reduce((sum, holeIndex) => sum + Number(roundState.savedScores[player.id]?.[holeIndex] || 0), 0);
+    const totalPar = completedIndexes.reduce((sum, holeIndex) => sum + Number(roundState.getHoleForPlayer(player, holeIndex).par || 0), 0);
+    const totalNet = completedIndexes.reduce((sum, holeIndex) => {
+      const result = roundState.getPlayerHoleResult(player, holeIndex);
+      return Number.isFinite(Number(result?.netScore)) ? sum + Number(result.netScore) : sum;
+    }, 0);
+    const totalPoints = completedIndexes.reduce((sum, holeIndex) => {
+      const grossScore = roundState.savedScores[player.id]?.[holeIndex];
+      return sum + (roundState.isInPoints(player) && !dnfStatus ? getPoints(grossScore, roundState.getHoleForPlayer(player, holeIndex).par) : 0);
+    }, 0);
+    const totalStrokes = completedIndexes.reduce((sum, holeIndex) =>
+      sum + Number(roundState.getPlayerHoleResult(player, holeIndex)?.strokesReceived || 0),
+    0);
+    const skinCount = completedIndexes.filter((holeIndex) =>
+      roundState.getSkinForHole(holeIndex)?.winnerId === player.id
+    ).length;
+
+    return `
+      <section class="player-scorecard-card">
+        <h3>${title}</h3>
+        <div class="player-scorecard-table-wrap">
+          <table class="player-scorecard-table">
+            <thead>
+              <tr><th scope="col">Label</th>${holeHeader}<th scope="col">${totalLabel}</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">Hole</th>${holeIndexes.map((holeIndex) => renderCell(holeIndex + 1)).join("")}${renderCell(totalLabel)}</tr>
+              <tr><th scope="row">Par</th>${holes.map((hole) => renderCell(hole.par)).join("")}${renderCell(totalPar || "-")}</tr>
+              <tr><th scope="row">HCP</th>${holes.map((hole) => renderCell(hole.handicap)).join("")}${renderCell("-")}</tr>
+              <tr><th scope="row">Gross</th>${holeIndexes.map((holeIndex, index) => {
+                const score = scores[index];
+                const hole = holes[index];
+                return renderCell(hasScore(score) ? score : "-", getGrossClass(score, hole.par));
+              }).join("")}${renderCell(completedIndexes.length ? totalGross : "-")}</tr>
+              <tr><th scope="row">Strokes</th>${holeIndexes.map((holeIndex) => {
+                const result = roundState.getPlayerHoleResult(player, holeIndex);
+                return renderCell(hasScore(scores[holeIndexes.indexOf(holeIndex)]) ? result?.strokesReceived ?? 0 : "-");
+              }).join("")}${renderCell(completedIndexes.length ? totalStrokes : "-")}</tr>
+              <tr><th scope="row">Net</th>${holeIndexes.map((holeIndex, index) => {
+                const result = roundState.getPlayerHoleResult(player, holeIndex);
+                return renderCell(hasScore(scores[index]) ? result?.netScore ?? "-" : "-");
+              }).join("")}${renderCell(completedIndexes.length ? totalNet : "-")}</tr>
+              <tr><th scope="row">Points</th>${holeIndexes.map((holeIndex, index) => {
+                const score = scores[index];
+                return renderCell(hasScore(score) && roundState.isInPoints(player) && !dnfStatus
+                  ? getPoints(score, holes[index].par)
+                  : "-");
+              }).join("")}${renderCell(roundState.isInPoints(player) && completedIndexes.length ? totalPoints : "-")}</tr>
+              <tr><th scope="row">Skin</th>${holeIndexes.map((holeIndex) => {
+                const skin = roundState.getSkinForHole(holeIndex);
+                return renderCell(skin?.winnerId === player.id ? `<span class="skin-badge">SKIN</span>` : "-");
+              }).join("")}${renderCell(skinCount || "-")}</tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderSummaryRow(label, formatter) {
+    const front = getSideSummary("front");
+    const back = getSideSummary("back");
+    const total = getSideSummary("total");
+
+    return `
+      <tr>
+        <th scope="row">${label}</th>
+        <td>${formatter(front, "front")}</td>
+        <td>${formatter(back, "back")}</td>
+        <td>${formatter(total, "total")}</td>
+      </tr>
+    `;
+  }
+
+  const frontSummary = getSideSummary("front");
+  const backSummary = getSideSummary("back");
+  const totalSummary = getSideSummary("total");
+  const pointsPayout = getPlayerPointsPayout("front") + getPlayerPointsPayout("back") + getPlayerPointsPayout("overall");
+  const skinsPayout = getPlayerSkinsPayout();
+  const totalPayout = pointsPayout + skinsPayout;
+  const throughText = dnfStatus
+    ? `${dnfStatus.holesCompleted} holes - ${dnfStatus.grossStrokes} strokes`
+    : `${totals.holesPlayed}/${totalHoles} holes`;
+
+  elements.playerScorecard.innerHTML = `
+    <section class="player-scorecard-view">
+      <div class="player-scorecard-header">
+        <button id="backFromPlayerScorecard" type="button" class="secondary-button">${returnLabel}</button>
+        <h2>${player.name}</h2>
+      </div>
+
+      ${renderGrid("Front Nine", getSideHoleIndexes("front"), "OUT")}
+      ${renderGrid("Back Nine", getSideHoleIndexes("back"), "IN")}
+
+      <div class="player-scorecard-meta">
+        <span>Tee <strong>${player.tee || "-"}</strong></span>
+        <span>Index <strong>${player.handicap ?? player.handicapIndex ?? "-"}</strong></span>
+        <span>Course HCP <strong>${roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? "-"}</strong></span>
+        <span>Status <strong>${statusText}</strong></span>
+      </div>
+
+      <section class="player-scorecard-card">
+        <h3>Summary</h3>
+        ${totals.holesPlayed < totalHoles || dnfStatus ? `<p class="player-details">Through ${throughText}. Unplayed holes are not counted.</p>` : ""}
+        <div class="player-scorecard-table-wrap">
+          <table class="player-scorecard-summary-table">
+            <thead>
+              <tr><th scope="col">Total</th><th scope="col">Front 9</th><th scope="col">Back 9</th><th scope="col">Total</th></tr>
+            </thead>
+            <tbody>
+              ${renderSummaryRow("Par", (side) => side.holes ? side.par : "-")}
+              ${renderSummaryRow("Gross Score", (side) => side.holes ? side.gross : "-")}
+              ${renderSummaryRow("Gross to Par", (side) => side.holes ? formatSigned(side.grossToPar) : "-")}
+              ${renderSummaryRow("Net Score", (side) => side.holes ? side.net : "-")}
+              ${renderSummaryRow("Net to Par", (side) => side.holes ? formatSigned(side.netToPar) : "-")}
+              ${renderSummaryRow("Points", (side) => roundState.isInPoints(player) && side.holes ? side.points : "-")}
+              ${renderSummaryRow("Points Target", (side) => roundState.isInPoints(player) ? side.pointsTarget : "-")}
+              ${renderSummaryRow("Points vs Target", (side) => roundState.isInPoints(player) ? side.pointsVsTarget : "-")}
+              ${renderSummaryRow("Skins Won", (side) => roundState.isInSkins(player) ? side.skinsWon : "-")}
+              <tr><th scope="row">Skins Payout</th><td>-</td><td>-</td><td>${formatCurrency(skinsPayout)}</td></tr>
+              <tr><th scope="row">Points Payout</th><td>${formatCurrency(getPlayerPointsPayout("front"))}</td><td>${formatCurrency(getPlayerPointsPayout("back"))}</td><td>${formatCurrency(pointsPayout)}</td></tr>
+              <tr class="player-scorecard-payout-row"><th scope="row">Total Payout</th><td></td><td></td><td>${formatCurrency(totalPayout)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="player-scorecard-card">
+        <h3>Skins</h3>
+        <p class="player-details">${roundState.isInSkins(player)
+          ? playerSkins.totalSkins
+            ? `${playerSkins.totalSkins} skin${playerSkins.totalSkins === 1 ? "" : "s"} won: ${playerSkins.holesWon.join(", ")}`
+            : "No skins won yet."
+          : "Not in Skins."}</p>
+      </section>
+    </section>
+  `;
+};

@@ -82,6 +82,8 @@ window.OGSGolf.ui.getElements = function getElements() {
     startRound: document.querySelector("#startRound"),
     summaryScreen: document.querySelector("#summaryScreen"),
     finalSummary: document.querySelector("#finalSummary"),
+    playerScorecardScreen: document.querySelector("#playerScorecardScreen"),
+    playerScorecard: document.querySelector("#playerScorecard"),
     summaryTitle: document.querySelector("#summaryTitle"),
     viewFinalLeaderboard: document.querySelector("#viewFinalLeaderboard"),
     reviewScorecard: document.querySelector("#reviewScorecard"),

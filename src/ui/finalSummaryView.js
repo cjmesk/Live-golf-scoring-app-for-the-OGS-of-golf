@@ -31,6 +31,10 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
     return label.replace(/^T(\d+)$/, "T-$1");
   }
 
+  function renderPlayerNameButton(playerId, playerName) {
+    return `<button type="button" class="player-name player-scorecard-link" data-open-player-scorecard="${playerId}">${playerName}</button>`;
+  }
+
   function getHolesPlayedText() {
     const holesPlayed = summary.playerTotals.reduce((highestCount, item) => {
       const playerHoles = item.dnf?.holesCompleted ?? item.totals.holesPlayed ?? 0;
@@ -54,7 +58,9 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
       `;
     }
 
-    const names = result.leaders.map((item) => item.player.name).join(", ");
+    const names = result.leaders
+      .map((item) => renderPlayerNameButton(item.player.id, item.player.name))
+      .join(", ");
     return `
       <div class="summary-card">
         <span>${label}</span>
@@ -81,7 +87,7 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
 
       return `
       <div class="summary-row payout-winner-row">
-        <span><b>${positionText}</b>${winner.playerName}</span>
+        <span><b>${positionText}</b>${renderPlayerNameButton(winner.playerId, winner.playerName)}</span>
         <strong>${winner.display}</strong>
         <small>${winner.points} points / ${winner.target} needed</small>
         <small class="summary-money">${formatCurrency(winner.payout)}</small>
@@ -138,7 +144,7 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
 
           return `
             <div class="summary-row skins-payout-row">
-              <span>${winner.playerName}</span>
+              <span>${renderPlayerNameButton(winner.playerId, winner.playerName)}</span>
               <strong>${formatCurrency(winner.payout)}</strong>
               <small>${winner.totalSkins} skin${winner.totalSkins === 1 ? "" : "s"} - ${formatCurrency(winner.payout)} total</small>
               <small>${holeListText}</small>
@@ -157,7 +163,7 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
     const playerPayoutRows = (payoutSummary.playerTotals || [])
       .map((playerTotal) => `
         <div class="summary-row payout-total-row ${Number(playerTotal.totalWinnings || 0) <= 0 ? "is-zero-payout" : ""}">
-          <span>${playerTotal.playerName}</span>
+          <span>${renderPlayerNameButton(playerTotal.playerId, playerTotal.playerName)}</span>
           <strong>${formatCurrency(playerTotal.totalWinnings)}</strong>
           <small>Front ${formatCurrency(playerTotal.frontPointsWinnings)} | Back ${formatCurrency(playerTotal.backPointsWinnings)} | Overall ${formatCurrency(playerTotal.overallPointsWinnings)}</small>
           <small>Skins ${formatCurrency(playerTotal.skinsWinnings)} | Total ${formatCurrency(playerTotal.totalWinnings)}</small>
@@ -197,7 +203,7 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
         : "Not in Skins";
       return `
         <div class="summary-row">
-          <span>${item.player.name}</span>
+          <span>${renderPlayerNameButton(item.player.id, item.player.name)}</span>
           <strong>${roundState.isInSkins(item.player) ? item.skins.totalSkins : "-"}</strong>
           <small>${skinsText}</small>
         </div>
@@ -248,7 +254,7 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
 
     return `
       <div class="summary-row points-result-row">
-        <span>${item.sectionRankLabel}. ${item.player.name}</span>
+        <span>${item.sectionRankLabel}. ${renderPlayerNameButton(item.player.id, item.player.name)}</span>
         <strong>${isHighlight ? result.display : ""}</strong>
         <small>${result.points} ${pointLabel} / ${result.target} needed</small>
         <small>${result.display}</small>
@@ -307,7 +313,7 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
 
       return `
         <div class="summary-row">
-          <span>${item.player.name}</span>
+          <span>${renderPlayerNameButton(item.player.id, item.player.name)}</span>
           <strong>${item.dnf ? "DNF" : overallGrossText}</strong>
           <small>${frontGrossText} | ${backGrossText}</small>
           <small>${item.dnf ? dnfText : `Net ${item.totals.net}`}</small>

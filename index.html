@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OG&apos;s Golf</title>
-      <link rel="stylesheet" href="src/styles/main.css?v=20260728-handicap-adjust">
+      <link rel="stylesheet" href="src/styles/main.css?v=20260728-score-first-layout">
 </head>
 <body>
   <header class="app-header">
@@ -385,6 +385,10 @@
       <div id="cloudSaveStatus" class="cloud-save-status"></div>
     </section>
 
+    <section id="playerScorecardScreen" class="summary-section is-hidden" aria-labelledby="playerScorecardTitle">
+      <div id="playerScorecard"></div>
+    </section>
+
     <section id="previousRoundsScreen" class="previous-rounds-section is-hidden" aria-labelledby="previousRoundsTitle">
       <div class="setup-header">
         <div>
@@ -563,18 +567,19 @@
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/roundCloudService.js?v=20260728-handicap-adjust"></script>
-  <script src="src/ui/dom.js?v=20260728-handicap-adjust"></script>
+  <script src="src/ui/dom.js?v=20260728-player-scorecard"></script>
   <script src="src/ui/formatters.js?v=20260710-index-course-handicap"></script>
   <script src="src/ui/setupView.js?v=20260715-points-skins-payouts"></script>
   <script src="src/ui/holeView.js?v=20260728-handicap-adjust"></script>
-  <script src="src/ui/leaderboardView.js?v=20260715-uniform-points-format"></script>
+  <script src="src/ui/leaderboardView.js?v=20260728-player-scorecard"></script>
   <script src="src/ui/pointsPayoutView.js?v=20260710-points-quota"></script>
   <script src="src/ui/skinsView.js?v=20260709-v098-menu"></script>
-  <script src="src/ui/finalSummaryView.js?v=20260728-phase1-polish"></script>
+  <script src="src/ui/finalSummaryView.js?v=20260728-player-scorecard"></script>
+  <script src="src/ui/playerScorecardView.js?v=20260728-score-first-layout"></script>
   <script src="src/ui/previousRoundsView.js?v=20260711-dnf"></script>
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
   <script src="src/ui/groupSetupView.js?v=20260710-flex-hole-order"></script>
   <script src="src/ui/eventSummaryView.js?v=20260710-round-setup"></script>
-  <script src="src/app.js?v=20260728-handicap-adjust"></script>
+  <script src="src/app.js?v=20260728-player-scorecard"></script>
 </body>
 </html>

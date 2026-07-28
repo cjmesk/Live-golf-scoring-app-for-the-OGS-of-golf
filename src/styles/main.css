@@ -378,6 +378,23 @@ body.is-scoring h1 {
   gap: 8px;
 }
 
+.group-review-player-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.group-review-player-links .player-scorecard-link {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--green-dark);
+  background: var(--paper);
+  padding: 7px 9px;
+  text-decoration: none;
+  font-size: 0.86rem;
+}
+
 .group-review-row {
   display: grid;
   gap: 6px;
@@ -421,13 +438,50 @@ body.is-scoring h1 {
 }
 
 body.is-scoring .hole-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 0;
 }
 
 body.is-scoring .round-status-bar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  order: 7;
+  position: static;
+  top: auto;
+  z-index: auto;
+  margin-top: 4px;
+}
+
+body.is-scoring .hole-summary {
+  order: 8;
+}
+
+body.is-scoring .hole-players {
+  order: 1;
+}
+
+body.is-scoring .dnf-confirm-panel {
+  order: 2;
+}
+
+body.is-scoring .commissioner-override-panel {
+  order: 6;
+}
+
+body.is-scoring .action-row {
+  order: 3;
+}
+
+body.is-scoring .save-confirmation {
+  order: 4;
+}
+
+body.is-scoring #groupCompletionSummary {
+  order: 5;
+}
+
+body.is-scoring .completed-group-panel {
+  order: 1;
 }
 
 body.is-scoring .current-hole-status {
@@ -641,6 +695,18 @@ body.is-scoring .current-hole-status {
   justify-self: end;
 }
 
+.player-options-menu.opens-up {
+  position: relative;
+}
+
+.player-options-menu.opens-up .player-options-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 1000;
+  margin-top: 0;
+}
+
 .player-options-menu summary {
   display: grid;
   place-items: center;
@@ -670,6 +736,52 @@ body.is-scoring .current-hole-status {
   border-radius: 8px;
   background: var(--paper);
   box-shadow: 0 8px 18px rgba(23, 32, 27, 0.12);
+}
+
+.mobile-player-options-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  align-items: end;
+  padding: 14px;
+  background: rgba(23, 32, 27, 0.28);
+}
+
+.mobile-player-options-sheet {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 430px);
+  max-height: calc(100vh - 28px);
+  margin: 0 auto;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px 10px 0 0;
+  background: var(--paper);
+  box-shadow: 0 -8px 28px rgba(23, 32, 27, 0.22);
+  padding: 14px;
+}
+
+.mobile-player-options-header {
+  display: grid;
+  gap: 3px;
+}
+
+.mobile-player-options-header span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.mobile-player-options-header strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.mobile-player-options-actions {
+  display: grid;
+  gap: 8px;
 }
 
 .player-option-button {
@@ -728,6 +840,26 @@ body.is-scoring .current-hole-status {
 .player-name {
   margin-bottom: 3px;
   font-weight: 800;
+}
+
+.player-scorecard-link {
+  display: inline;
+  min-height: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
+  text-align: left;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.player-scorecard-link:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
 }
 
 .player-details {
@@ -858,6 +990,171 @@ body.is-scoring .current-hole-status {
 
 .scorecard-legend span {
   min-width: 0;
+}
+
+.player-scorecard-view {
+  display: grid;
+  gap: 8px;
+}
+
+.player-scorecard-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 2px 0 4px;
+}
+
+.player-scorecard-header h2 {
+  margin: 0;
+  color: var(--green-dark);
+  font-size: 1.35rem;
+  line-height: 1.12;
+}
+
+.player-scorecard-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.player-scorecard-meta span {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--paper);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.player-scorecard-meta strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.player-scorecard-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.player-scorecard-card h3 {
+  margin: 0;
+  color: var(--green-dark);
+  font-size: 1rem;
+}
+
+.player-scorecard-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.player-scorecard-table,
+.player-scorecard-summary-table {
+  width: 100%;
+  min-width: 430px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.76rem;
+}
+
+.player-scorecard-summary-table {
+  min-width: 0;
+}
+
+.player-scorecard-table th,
+.player-scorecard-table td,
+.player-scorecard-summary-table th,
+.player-scorecard-summary-table td {
+  padding: 6px 3px;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.player-scorecard-table th:first-child,
+.player-scorecard-summary-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 62px;
+  color: var(--green-dark);
+  background: #eef5ef;
+  text-align: left;
+  font-weight: 900;
+}
+
+.player-scorecard-table thead th,
+.player-scorecard-summary-table thead th {
+  color: var(--green-dark);
+  background: #eef5ef;
+  font-weight: 900;
+}
+
+.score-result-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.score-result-eagle {
+  color: white;
+  background: #b3261e;
+}
+
+.score-result-birdie {
+  border: 1px solid #b3261e;
+  color: #8f1d18;
+  background: #fff3f2;
+}
+
+.score-result-bogey {
+  border-radius: 4px;
+  color: white;
+  background: var(--blue);
+}
+
+.score-result-double {
+  border: 2px solid var(--blue);
+  border-radius: 4px;
+  color: var(--blue);
+  background: #eef4fb;
+}
+
+.score-result-neutral {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.skin-badge {
+  display: inline-block;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: white;
+  background: var(--green);
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.player-scorecard-payout-row th,
+.player-scorecard-payout-row td {
+  color: var(--green-dark);
+  background: #eef5ef;
+  font-size: 0.9rem;
+  font-weight: 900;
 }
 
 .action-row {
@@ -1511,6 +1808,67 @@ body.is-scoring .current-hole-status {
     grid-template-columns: 1fr;
   }
 
+  .player-scorecard-view {
+    gap: 6px;
+  }
+
+  .player-scorecard-header {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    padding: 0 0 4px;
+  }
+
+  .player-scorecard-header .secondary-button {
+    width: auto;
+    min-height: 38px;
+    padding: 0 10px;
+  }
+
+  .player-scorecard-header h2 {
+    min-width: 0;
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .player-scorecard-card {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .player-scorecard-table,
+  .player-scorecard-summary-table {
+    min-width: 390px;
+    font-size: 0.68rem;
+  }
+
+  .player-scorecard-summary-table {
+    min-width: 0;
+  }
+
+  .player-scorecard-table th,
+  .player-scorecard-table td,
+  .player-scorecard-summary-table th,
+  .player-scorecard-summary-table td {
+    padding: 5px 2px;
+  }
+
+  .player-scorecard-table th:first-child,
+  .player-scorecard-summary-table th:first-child {
+    width: 52px;
+  }
+
+  .score-result-badge {
+    min-width: 20px;
+    min-height: 20px;
+  }
+
+  .skin-badge {
+    padding: 1px 3px;
+    font-size: 0.56rem;
+  }
+
   .leaderboard-row {
     grid-template-columns: 32px 1fr;
   }
@@ -1635,8 +1993,14 @@ body.is-scoring .current-hole-status {
   .player-options-list {
     position: absolute;
     right: 0;
-    z-index: 8;
+    top: calc(100% + 6px);
+    z-index: 1000;
     min-width: 190px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .player-options-menu.opens-up .player-options-list {
+    top: auto;
   }
 
   .action-row {
