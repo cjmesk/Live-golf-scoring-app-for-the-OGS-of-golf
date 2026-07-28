@@ -1056,6 +1056,40 @@ body.is-scoring .current-hole-status {
   gap: 10px;
 }
 
+.summary-hero {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.summary-hero h3 {
+  margin: 0;
+  color: var(--green-dark);
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.summary-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.summary-meta-grid span {
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: #fafbf9;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .summary-grid {
   margin-bottom: 16px;
 }
@@ -1089,11 +1123,12 @@ body.is-scoring .current-hole-status {
 }
 
 .summary-block {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .summary-block h3 {
   margin: 0 0 10px;
+  color: var(--green-dark);
   font-size: 1.05rem;
 }
 
@@ -1102,6 +1137,54 @@ body.is-scoring .current-hole-status {
   grid-template-columns: 1fr auto;
   gap: 4px 10px;
   align-items: center;
+}
+
+.payout-winner-row,
+.payout-total-row,
+.skins-payout-row {
+  gap: 5px 10px;
+}
+
+.payout-winner-row span,
+.payout-total-row span,
+.skins-payout-row span {
+  min-width: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.payout-winner-row span b {
+  color: var(--green-dark);
+}
+
+.payout-winner-row strong,
+.payout-total-row strong,
+.skins-payout-row strong {
+  color: var(--green-dark);
+  font-size: 1.12rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.summary-money {
+  color: var(--ink) !important;
+  font-weight: 900;
+  text-align: right;
+}
+
+.payout-total-row strong {
+  font-size: 1.2rem;
+}
+
+.payout-total-row.is-zero-payout {
+  background: #fafbf9;
+}
+
+.payout-total-row.is-zero-payout span,
+.payout-total-row.is-zero-payout strong,
+.payout-total-row.is-zero-payout small {
+  color: var(--muted);
 }
 
 .summary-row small {
@@ -1334,6 +1417,81 @@ body.is-scoring .current-hole-status {
 
   h2 {
     font-size: 1.28rem;
+  }
+
+  .summary-section .setup-header {
+    margin-bottom: 8px;
+  }
+
+  .summary-hero {
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .summary-hero h3 {
+    font-size: 1.2rem;
+  }
+
+  .summary-meta-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+
+  .summary-meta-grid span {
+    padding: 6px;
+    font-size: 0.78rem;
+  }
+
+  .final-summary,
+  .summary-list,
+  .summary-actions {
+    gap: 8px;
+  }
+
+  .summary-card,
+  .summary-row {
+    padding: 9px;
+  }
+
+  .summary-block {
+    margin-bottom: 10px;
+  }
+
+  .summary-block h3 {
+    margin-bottom: 8px;
+    font-size: 1rem;
+  }
+
+  .points-category {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .payout-winner-row,
+  .payout-total-row,
+  .skins-payout-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .payout-winner-row span,
+  .payout-total-row span,
+  .skins-payout-row span {
+    font-size: 0.9rem;
+  }
+
+  .payout-winner-row strong,
+  .payout-total-row strong,
+  .skins-payout-row strong {
+    font-size: 1.05rem;
+  }
+
+  .summary-card small,
+  .summary-row small {
+    font-size: 0.78rem;
+  }
+
+  .summary-actions {
+    grid-template-columns: 1fr;
   }
 
   .leaderboard-row {

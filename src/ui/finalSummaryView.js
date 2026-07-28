@@ -3,10 +3,44 @@ window.OGSGolf.ui = window.OGSGolf.ui || {};
 
 window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, roundState) {
   const summary = roundState.getFinalSummary();
+  const roundSettings = roundState.roundSettings || {};
+
+  function formatDate(value) {
+    if (!value) return "Date not saved";
+
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T00:00:00`)
+      : new Date(value);
+
+    if (Number.isNaN(date.getTime())) return value;
+
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  }
 
   function formatCurrency(value) {
     const numericValue = Number(value);
     return Number.isFinite(numericValue) ? `$${numericValue.toFixed(2)}` : "$0.00";
+  }
+
+  function formatRankLabel(rankLabel, rank) {
+    const label = rankLabel || (rank ? String(rank) : "");
+    return label.replace(/^T(\d+)$/, "T-$1");
+  }
+
+  function getHolesPlayedText() {
+    const holesPlayed = summary.playerTotals.reduce((highestCount, item) => {
+      const playerHoles = item.dnf?.holesCompleted ?? item.totals.holesPlayed ?? 0;
+      return Math.max(highestCount, Number(playerHoles) || 0);
+    }, 0);
+    const holesRequired = (roundSettings.groupRecords || []).reduce((highestCount, record) =>
+      Math.max(highestCount, Number(record?.holesToPlay || record?.holes_to_play || 0)),
+    0) || roundState.totalHoles;
+
+    return `${holesPlayed}/${holesRequired} holes`;
   }
 
   function formatWinner(result, label) {
@@ -42,14 +76,15 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
     }
 
     return winners.map((winner) => {
-      const positionText = winner.rankLabel || winner.rank ? `${winner.rankLabel || winner.rank}. ` : "";
+      const rankLabel = formatRankLabel(winner.rankLabel, winner.rank);
+      const positionText = rankLabel ? `${rankLabel}. ` : "";
 
       return `
-      <div class="summary-row">
-        <span>${positionText}${winner.playerName}</span>
-        <strong>${formatCurrency(winner.payout)}</strong>
+      <div class="summary-row payout-winner-row">
+        <span><b>${positionText}</b>${winner.playerName}</span>
+        <strong>${winner.display}</strong>
         <small>${winner.points} points / ${winner.target} needed</small>
-        <small>${winner.display}</small>
+        <small class="summary-money">${formatCurrency(winner.payout)}</small>
       </div>
     `;
     }).join("");
@@ -66,11 +101,21 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
       .map((detail) => {
         const skinsNetScore = detail.skinsNetScore ?? detail.skinScore ?? detail.netScore;
         const netText = Number.isFinite(Number(skinsNetScore))
-          ? ` — Net ${skinsNetScore}`
+          ? ` - Net ${skinsNetScore}`
           : "";
         return `Hole ${detail.hole}${netText}`;
       })
       .join(", ");
+  }
+
+  function formatSkinHoles(details = [], fallbackHoles = []) {
+    const holes = details.length
+      ? details.map((detail) => detail.hole)
+      : fallbackHoles;
+
+    if (!holes.length) return "Holes -";
+
+    return `Holes ${holes.join(", ")}`;
   }
 
   function renderPayoutSection() {
@@ -88,14 +133,17 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
     const skinsRows = hasSkinsPayout && payoutSummary.skins.winners.length
         ? payoutSummary.skins.winners.map((winner) => {
           const holeText = formatSkinHoleDetails(winner.holesWonDetails, winner.holesWon);
-          const valuePerSkin = payoutSummary.skins.valuePerSkin ?? payoutSummary.skins.payoutPerSkin ?? 0;
+          const holeListText = formatSkinHoles(winner.holesWonDetails, winner.holesWon);
+          const averageValue = winner.totalSkins > 0 ? Number(winner.payout || 0) / winner.totalSkins : 0;
 
           return `
-            <div class="summary-row">
+            <div class="summary-row skins-payout-row">
               <span>${winner.playerName}</span>
               <strong>${formatCurrency(winner.payout)}</strong>
-              <small>${winner.totalSkins} skin${winner.totalSkins === 1 ? "" : "s"} | ${formatCurrency(valuePerSkin)} per skin</small>
+              <small>${winner.totalSkins} skin${winner.totalSkins === 1 ? "" : "s"} - ${formatCurrency(winner.payout)} total</small>
+              <small>${holeListText}</small>
               <small>${holeText}</small>
+              ${winner.totalSkins > 1 ? `<small>Average value: ${formatCurrency(averageValue)} per skin</small>` : ""}
             </div>
           `;
         }).join("")
@@ -108,7 +156,7 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
         `;
     const playerPayoutRows = (payoutSummary.playerTotals || [])
       .map((playerTotal) => `
-        <div class="summary-row">
+        <div class="summary-row payout-total-row ${Number(playerTotal.totalWinnings || 0) <= 0 ? "is-zero-payout" : ""}">
           <span>${playerTotal.playerName}</span>
           <strong>${formatCurrency(playerTotal.totalWinnings)}</strong>
           <small>Front ${formatCurrency(playerTotal.frontPointsWinnings)} | Back ${formatCurrency(playerTotal.backPointsWinnings)} | Overall ${formatCurrency(playerTotal.overallPointsWinnings)}</small>
@@ -122,12 +170,12 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
         <h3>Points & Skins Payouts</h3>
         ${hasPointsPayout ? `<section class="points-category">
           <h4>Points</h4>
+          <div class="payout-subtitle">Overall</div>
+          <div class="summary-list">${renderPayoutWinnerRows(payoutSummary.points.overallPayouts || payoutSummary.points.overall?.payouts || payoutSummary.points.overall?.winners)}</div>
           <div class="payout-subtitle">Front Nine</div>
           <div class="summary-list">${renderPayoutWinnerRows(payoutSummary.points.frontPayouts || payoutSummary.points.front?.payouts || payoutSummary.points.front?.winners)}</div>
           <div class="payout-subtitle">Back Nine</div>
           <div class="summary-list">${renderPayoutWinnerRows(payoutSummary.points.backPayouts || payoutSummary.points.back?.payouts || payoutSummary.points.back?.winners)}</div>
-          <div class="payout-subtitle">Overall</div>
-          <div class="summary-list">${renderPayoutWinnerRows(payoutSummary.points.overallPayouts || payoutSummary.points.overall?.payouts || payoutSummary.points.overall?.winners)}</div>
         </section>` : ""}
         ${hasSkinsPayout ? `<section class="points-category">
           <h4>Skins</h4>
@@ -269,6 +317,17 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
     .join("");
 
   elements.finalSummary.innerHTML = `
+    <section class="summary-hero">
+      <p class="eyebrow dark">${elements.summaryTitle?.textContent === "Last Round Results" ? "Saved Results" : "Final Results"}</p>
+      <h3>${elements.summaryTitle?.textContent || "Round Complete"}</h3>
+      <div class="summary-meta-grid">
+        <span>${roundSettings.course?.name || "Course not saved"}</span>
+        <span>${formatDate(roundSettings.date)}</span>
+        <span>${summary.playerTotals.length} players</span>
+        <span>${getHolesPlayedText()}</span>
+      </div>
+    </section>
+
     ${renderPayoutSection()}
 
     ${pointsResultsSection}

@@ -53,6 +53,11 @@ let latestCloudActiveRoundInfo = {
   details: ""
 };
 
+function isDebugModeEnabled() {
+  const urlDebugMode = new URLSearchParams(window.location.search).get("debug") === "1";
+  return urlDebugMode || window.localStorage.getItem("ogsGolfDebugMode") === "true";
+}
+
 function setActiveScreen(screenName) {
   const isScoringScreen = screenName === "round";
 
@@ -94,6 +99,11 @@ function clearSaveConfirmation() {
 
 function renderActiveRoundDiagnostics({ loadedFrom = "" } = {}) {
   if (!elements.activeRoundDiagnostics) return;
+
+  const debugModeEnabled = isDebugModeEnabled();
+  elements.activeRoundDiagnostics.classList.toggle("is-hidden", !debugModeEnabled);
+
+  if (!debugModeEnabled) return;
 
   const localRound = roundStorage.getUnfinished();
   const localRoundId = localRound?.id || "none";
@@ -333,8 +343,8 @@ async function showLiveScoring() {
   scrollToScoring();
 }
 
-function showLeaderboard() {
-  showLiveScoring();
+async function showLeaderboard() {
+  await showLiveScoring();
 
   if (roundState) {
     showLeaderboardPage();
@@ -573,7 +583,7 @@ async function handleMenuAction(action) {
   }
 
   if (action === "leaderboard") {
-    showLeaderboard();
+    await showLeaderboard();
     return;
   }
 
@@ -1457,11 +1467,15 @@ function showScoreMyGroup() {
   scrollToScoring();
 }
 
-function showLeaderboardPage() {
-  if (!roundState) return;
+function showLeaderboardPage(leaderboardState = roundState, leaderboardPlayers = selectedPlayers) {
+  const stateToRender = leaderboardState?.getFinalSummary ? leaderboardState : roundState;
+  const playersToRender = leaderboardState?.getFinalSummary ? leaderboardPlayers : selectedPlayers;
+
+  if (!stateToRender) return;
 
   hideCommissionerGroupSelection();
-  renderLeaderboard(elements, selectedPlayers, roundState);
+  setActiveScreen("round");
+  renderLeaderboard(elements, playersToRender, stateToRender);
   elements.roundScreen.classList.add("is-leaderboard-view");
   scrollToTop();
 }
@@ -1929,7 +1943,6 @@ function setSummaryButtonsForReadOnly(isReadOnly) {
   elements.saveRoundCloud.classList.toggle("is-hidden", isReadOnly);
   elements.summaryUndoLastHole.classList.toggle("is-hidden", isReadOnly);
   elements.startNewRound.classList.toggle("is-hidden", isReadOnly || !commissionerMode);
-  elements.viewFinalLeaderboard.classList.toggle("is-hidden", isReadOnly);
   elements.summaryPreviousRounds.classList.toggle("is-hidden", isReadOnly);
 }
 
@@ -3052,11 +3065,18 @@ elements.resetScores.addEventListener("click", async () => {
 
 elements.reviewScorecard.addEventListener("click", reviewScorecard);
 elements.viewFinalLeaderboard.addEventListener("click", () => {
-  if (!roundState) return;
+  const leaderboardState = summaryDisplayRoundState || roundState;
+
+  if (!leaderboardState) return;
 
   setActiveScreen("round");
-  renderApp();
-  showLeaderboardPage();
+  renderLeaderboard(
+    elements,
+    leaderboardState.getFinalSummary().playerTotals.map((item) => item.player),
+    leaderboardState
+  );
+  elements.roundScreen.classList.add("is-leaderboard-view");
+  scrollToTop();
 });
 elements.summaryPreviousRounds.addEventListener("click", showPreviousRounds);
 elements.summaryReturnHome.addEventListener("click", showTodayRoundScreen);
