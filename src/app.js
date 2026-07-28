@@ -52,6 +52,8 @@ let playerScorecardReturnScreen = "round";
 let playerScorecardState = null;
 let playerScorecardPlayerId = "";
 let finalRoundSyncInFlight = false;
+let completedRoundsCache = [];
+let completedRoundsSource = "local";
 let latestCloudActiveRoundInfo = {
   id: "",
   cloudUpdatedAt: "",
@@ -247,14 +249,30 @@ function showTodayRoundScreen() {
   scrollToTop();
 }
 
-function getLastCompletedRound() {
-  return roundStorage.getAll()
+function getCompletedRoundTime(round) {
+  return new Date(
+    round?.completedAt
+    || round?.roundSettings?.completedAt
+    || round?.savedAt
+    || round?.date
+    || 0
+  ).getTime();
+}
+
+function sortCompletedRounds(rounds) {
+  return [...(rounds || [])]
     .filter((round) => round?.completed === true)
-    .sort((firstRound, secondRound) => {
-      const firstDate = new Date(firstRound.savedAt || firstRound.date || 0).getTime();
-      const secondDate = new Date(secondRound.savedAt || secondRound.date || 0).getTime();
-      return secondDate - firstDate;
-    })[0] || null;
+    .sort((firstRound, secondRound) => getCompletedRoundTime(secondRound) - getCompletedRoundTime(firstRound));
+}
+
+function getLocalCompletedRounds() {
+  return sortCompletedRounds(roundStorage.getAll());
+}
+
+function getLastCompletedRound() {
+  return sortCompletedRounds(completedRoundsCache)[0]
+    || getLocalCompletedRounds()[0]
+    || null;
 }
 
 function updateLastRoundResultsVisibility() {
@@ -263,30 +281,57 @@ function updateLastRoundResultsVisibility() {
   elements.todayLastRoundResults?.classList.toggle("is-hidden", !hasLastRound);
 }
 
-function createReadOnlyRoundStateFromSavedRound(savedRound) {
-  if (!savedRound?.course?.id || !savedRound?.players?.length) return null;
-  if (!savedRound.savedScores) return null;
+function normalizeCompletedRoundForReadOnly(savedRound) {
+  if (!savedRound) return null;
 
-  const savedCourse = courses.find((course) => course.id === savedRound.course.id) || courses[0];
-  const savedPlayers = savedRound.players.map((player) => ({
+  if (savedRound.savedScores) return savedRound;
+
+  const savedScores = {};
+
+  (savedRound.holeByHole || []).forEach((hole) => {
+    const holeIndex = Number(hole.hole || 0) - 1;
+
+    if (holeIndex < 0) return;
+
+    (hole.scores || []).forEach((score) => {
+      if (!score.playerId || score.gross === null || score.gross === undefined) return;
+      savedScores[score.playerId] = savedScores[score.playerId] || [];
+      savedScores[score.playerId][holeIndex] = score.gross;
+    });
+  });
+
+  return {
+    ...savedRound,
+    savedScores
+  };
+}
+
+function createReadOnlyRoundStateFromSavedRound(savedRound) {
+  const normalizedRound = normalizeCompletedRoundForReadOnly(savedRound);
+
+  if (!normalizedRound?.course?.id || !normalizedRound?.players?.length) return null;
+  if (!normalizedRound.savedScores) return null;
+
+  const savedCourse = courses.find((course) => course.id === normalizedRound.course.id) || courses[0];
+  const savedPlayers = normalizedRound.players.map((player) => ({
     ...player,
     handicap: player.handicapIndex ?? player.handicap
   }));
   const savedSettings = {
-    ...(savedRound.roundSettings || {}),
+    ...(normalizedRound.roundSettings || {}),
     games: {
       pointsGame: { enabled: false },
       netSkins: { enabled: false },
       teamChallenge: { enabled: false },
-      ...(savedRound.roundSettings?.games || {})
+      ...(normalizedRound.roundSettings?.games || {})
     },
-    groups: savedRound.roundSettings?.groups || [savedPlayers.map((player) => player.id)],
-    groupRecords: savedRound.roundSettings?.groupRecords || [{ holesToPlay: savedCourse.tees.white.length }],
+    groups: normalizedRound.roundSettings?.groups || [savedPlayers.map((player) => player.id)],
+    groupRecords: normalizedRound.roundSettings?.groupRecords || [{ holesToPlay: savedCourse.tees.white.length }],
     course: savedCourse,
     players: savedPlayers
   };
 
-  return createRoundState(savedCourse, savedPlayers, savedSettings, savedRound);
+  return createRoundState(savedCourse, savedPlayers, savedSettings, normalizedRound);
 }
 
 function renderAccessMode() {
@@ -651,7 +696,7 @@ async function handleMenuAction(action) {
   }
 
   if (action === "lastResults") {
-    showLastRoundResults();
+    await showLastRoundResults();
     return;
   }
 
@@ -2236,7 +2281,7 @@ function showFinalSummary(summaryState = roundState, { readOnly = false, statusM
   summaryDisplayRoundState = summaryState;
   summaryReadOnlyMode = readOnly;
   if (elements.summaryTitle) {
-    elements.summaryTitle.textContent = readOnly ? "Last Round Results" : "Round Complete";
+    elements.summaryTitle.textContent = readOnly ? "Latest Round Results" : "Round Complete";
   }
   setActiveScreen("summary");
   renderFinalSummary(elements, summaryState);
@@ -2247,29 +2292,6 @@ function showFinalSummary(summaryState = roundState, { readOnly = false, statusM
     ? "Final scores recorded."
     : "Round complete. Review scores, then tap Confirm Final Scores.");
   scrollToTop();
-}
-
-function showLastRoundResults() {
-  const lastRound = getLastCompletedRound();
-
-  if (!lastRound) {
-    showTodayRoundScreen();
-    elements.todayStatus.textContent = "No completed round found yet.";
-    return;
-  }
-
-  const lastRoundState = createReadOnlyRoundStateFromSavedRound(lastRound);
-
-  if (!lastRoundState) {
-    showTodayRoundScreen();
-    elements.todayStatus.textContent = "Last completed round is missing data needed to recreate the results screen.";
-    return;
-  }
-
-  showFinalSummary(lastRoundState, {
-    readOnly: true,
-    statusMessage: "Read-only results from the most recently completed round."
-  });
 }
 
 function transitionToCompletedRound(completedRound, source = "cloud completed round") {
@@ -2420,25 +2442,119 @@ async function saveRoundToCloud() {
   elements.cloudSaveStatus.textContent = result.message;
 }
 
-async function loadPreviousRoundsFromCloud() {
-  elements.previousRoundsStatus.textContent = "Loading cloud rounds...";
-
+async function loadCompletedRoundsForNavigation({ statusElement = null } = {}) {
+  if (statusElement) statusElement.textContent = "Loading completed rounds...";
   const result = await roundCloudService.loadCompletedRounds();
 
   if (result.ok) {
-    renderPreviousRounds(elements, result.rounds);
-    elements.previousRoundsStatus.textContent = "Loaded rounds from cloud";
+    completedRoundsCache = sortCompletedRounds(result.rounds);
+    completedRoundsSource = "Supabase";
+    completedRoundsCache.forEach((completedRound) => roundStorage.save(completedRound));
+    updateLastRoundResultsVisibility();
+    if (statusElement) statusElement.textContent = "Loaded completed rounds from cloud";
+    return {
+      ok: true,
+      source: "Supabase",
+      rounds: completedRoundsCache
+    };
+  }
+
+  completedRoundsCache = getLocalCompletedRounds();
+  completedRoundsSource = "local fallback";
+  updateLastRoundResultsVisibility();
+  if (statusElement) statusElement.textContent = "Cloud load failed, showing local completed rounds";
+  return {
+    ok: false,
+    source: "local fallback",
+    rounds: completedRoundsCache,
+    message: result.message
+  };
+}
+
+async function refreshLatestCompletedRoundAvailability() {
+  await loadCompletedRoundsForNavigation();
+}
+
+async function loadPreviousRoundsFromCloud() {
+  const result = await loadCompletedRoundsForNavigation({
+    statusElement: elements.previousRoundsStatus
+  });
+  renderPreviousRounds(elements, result.rounds);
+}
+
+function findCompletedRoundById(roundId) {
+  return sortCompletedRounds(completedRoundsCache).find((round) => round.id === roundId)
+    || getLocalCompletedRounds().find((round) => round.id === roundId)
+    || null;
+}
+
+async function openCompletedRoundResults(round, { title = "Latest Round Results", statusMessage = "" } = {}) {
+  const completedRound = normalizeCompletedRoundForReadOnly(round);
+  const completedRoundState = createReadOnlyRoundStateFromSavedRound(completedRound);
+
+  if (!completedRoundState) {
+    showTodayRoundScreen();
+    elements.todayStatus.textContent = "That completed round is missing data needed to recreate the full results.";
     return;
   }
 
-  renderPreviousRounds(elements, roundStorage.getAll());
-  elements.previousRoundsStatus.textContent = "Cloud load failed, showing local rounds";
+  summaryDisplayRoundState = completedRoundState;
+  summaryReadOnlyMode = true;
+  if (elements.summaryTitle) {
+    elements.summaryTitle.textContent = title;
+  }
+  setActiveScreen("summary");
+  renderFinalSummary(elements, completedRoundState);
+  setSummaryButtonsForReadOnly(true);
+  elements.cloudSaveStatus.textContent = statusMessage
+    || `Read-only completed round loaded from ${completedRoundsSource}.`;
+  scrollToTop();
 }
 
 function showPreviousRounds() {
   loadPreviousRoundsFromCloud();
   setActiveScreen("previous");
   scrollToTop();
+}
+
+async function showLatestRoundResults() {
+  const result = await loadCompletedRoundsForNavigation();
+  const latestRound = sortCompletedRounds(result.rounds)[0];
+
+  if (!latestRound) {
+    showTodayRoundScreen();
+    elements.todayStatus.textContent = "No completed round found yet.";
+    return;
+  }
+
+  openCompletedRoundResults(latestRound, {
+    title: "Latest Round Results",
+    statusMessage: `Read-only results from the latest completed round loaded from ${result.source}.`
+  });
+}
+
+async function showLastRoundResults() {
+  await showLatestRoundResults();
+}
+
+async function openPreviousRoundResults(roundId) {
+  if (!findCompletedRoundById(roundId)) {
+    await loadCompletedRoundsForNavigation({
+      statusElement: elements.previousRoundsStatus
+    });
+  }
+
+  const selectedRound = findCompletedRoundById(roundId);
+
+  if (!selectedRound) {
+    elements.previousRoundsStatus.textContent = "That completed round could not be found.";
+    return;
+  }
+
+  openCompletedRoundResults(selectedRound, {
+    title: "Round Results",
+    statusMessage: "Read-only results from the selected completed round."
+  });
 }
 
 async function showPlayerManagement() {
@@ -2473,7 +2589,7 @@ function returnFromPlayerManagement() {
     return;
   }
 
-  setActiveScreen("setup");
+  showTodayRoundScreen();
 }
 
 function returnFromPreviousRounds() {
@@ -3005,6 +3121,7 @@ function resumeSavedRound() {
 
 async function initializeApp() {
   await loadRosterFromCloud();
+  await refreshLatestCompletedRoundAvailability();
   renderSetupView(elements, courses, members);
 
   const cloudActiveResult = await loadActiveRoundFromCloudFirst();
@@ -3192,6 +3309,14 @@ document.addEventListener("click", (event) => {
   if (scorecardBackButton) {
     event.preventDefault();
     closePlayerScorecard();
+    return;
+  }
+
+  const completedRoundButton = event.target.closest("[data-open-completed-round-id]");
+
+  if (completedRoundButton) {
+    event.preventDefault();
+    openPreviousRoundResults(completedRoundButton.dataset.openCompletedRoundId);
     return;
   }
 

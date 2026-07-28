@@ -324,7 +324,7 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
 
   elements.finalSummary.innerHTML = `
     <section class="summary-hero">
-      <p class="eyebrow dark">${elements.summaryTitle?.textContent === "Last Round Results" ? "Saved Results" : "Final Results"}</p>
+      <p class="eyebrow dark">${elements.summaryTitle?.textContent?.includes("Results") ? "Saved Results" : "Final Results"}</p>
       <h3>${elements.summaryTitle?.textContent || "Round Complete"}</h3>
       <div class="summary-meta-grid">
         <span>${roundSettings.course?.name || "Course not saved"}</span>

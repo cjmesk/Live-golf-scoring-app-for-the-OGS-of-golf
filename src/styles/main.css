@@ -1609,15 +1609,26 @@ body.is-scoring .current-hole-status {
   margin-bottom: 10px;
 }
 
+.previous-round-card-button {
+  cursor: pointer;
+}
+
 .previous-round-header {
   display: grid;
-  gap: 4px;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
 }
 
 .previous-round-header span {
   display: block;
   color: var(--muted);
   font-size: 0.86rem;
+}
+
+.compact-button {
+  min-height: 40px;
+  padding: 0 12px;
 }
 
 .previous-total-row {

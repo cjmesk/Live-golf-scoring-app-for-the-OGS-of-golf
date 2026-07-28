@@ -26,6 +26,26 @@ function getSkinsWinner(round) {
     .join(", ");
 }
 
+function getRoundCompletedTime(round) {
+  return new Date(
+    round?.completedAt
+    || round?.roundSettings?.completedAt
+    || round?.savedAt
+    || round?.date
+    || 0
+  ).getTime();
+}
+
+function getHolesPlayedLabel(round) {
+  const groupHoles = (round.roundSettings?.groupRecords || [])
+    .map((group) => Number(group.holesToPlay || group.requiredHoles || 0))
+    .filter((holes) => Number.isFinite(holes) && holes > 0);
+  const holeCount = round.holeByHole?.length || round.course?.par?.length || 0;
+  const holesPlayed = groupHoles.length ? Math.max(...groupHoles) : holeCount;
+
+  return holesPlayed ? `${holesPlayed} holes` : "Holes not available";
+}
+
 function getRoundScoresByPlayer(round) {
   const scoresByPlayer = {};
 
@@ -153,7 +173,7 @@ function formatPreviousGross(total) {
 }
 
 window.OGSGolf.ui.renderPreviousRounds = function renderPreviousRounds(elements, rounds) {
-  const sortedRounds = [...rounds].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sortedRounds = [...rounds].sort((a, b) => getRoundCompletedTime(b) - getRoundCompletedTime(a));
 
   if (sortedRounds.length === 0) {
     elements.previousRoundsList.innerHTML = `
@@ -166,32 +186,26 @@ window.OGSGolf.ui.renderPreviousRounds = function renderPreviousRounds(elements,
     .map((round) => {
       const roundDate = new Date(round.date).toLocaleDateString();
       const courseName = round.course?.name || "Unknown course";
-      const playerNames = (round.players || []).map((player) => player.name).join(", ") || "Not available";
-      const grossWinner = getLeaderNames(round.winners?.gross);
-      const netWinner = getLeaderNames(round.winners?.net);
-      const skinsWinner = getSkinsWinner(round);
-      const totals = getHistoryTotals(round)
-        .map((total) => `
-          <div class="previous-total-row">
-            <span>${total.playerName}</span>
-            <small>${formatPreviousGross(total)} | ${total.points} pts | Skins ${total.skinsWon}</small>
-          </div>
-        `)
-        .join("");
+      const playerCount = round.players?.length || 0;
+      const completedAt = round.completedAt || round.roundSettings?.completedAt;
+      const completedLabel = completedAt
+        ? `Completed ${new Date(completedAt).toLocaleString()}`
+        : "Completed round";
 
       return `
-        <article class="previous-round-card">
+        <article class="previous-round-card previous-round-card-button" data-open-completed-round-id="${round.id}">
           <div class="previous-round-header">
             <div>
               <strong>${courseName}</strong>
               <span>${roundDate}</span>
             </div>
+            <button type="button" class="secondary-button compact-button" data-open-completed-round-id="${round.id}">
+              Open Results
+            </button>
           </div>
-          <div class="player-details">Players: ${playerNames}</div>
-          <div class="player-details">Gross Winner: ${grossWinner}</div>
-          <div class="player-details">Net Winner: ${netWinner}</div>
-          <div class="player-details">Skins Winner: ${skinsWinner}</div>
-          <div class="previous-total-list">${totals}</div>
+          <div class="player-details">Players: ${playerCount}</div>
+          <div class="player-details">Holes played: ${getHolesPlayedLabel(round)}</div>
+          <div class="player-details">${completedLabel}</div>
         </article>
       `;
     })
