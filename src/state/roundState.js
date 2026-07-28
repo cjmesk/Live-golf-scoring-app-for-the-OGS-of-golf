@@ -338,7 +338,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
       return {
         ...standing,
         rank: currentRank,
-        rankLabel: tiedWithPrevious || tiedWithNext ? `T${currentRank}` : String(currentRank)
+        rankLabel: tiedWithPrevious || tiedWithNext ? `T-${currentRank}` : String(currentRank)
       };
     });
   }
@@ -530,48 +530,185 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     return payouts;
   }
 
+  const pointsPayoutScheduleByPlayerCount = {
+    20: [45, 25, 15, 10, 5],
+    19: [45, 25, 15, 10],
+    18: [45, 20, 15, 10],
+    17: [40, 20, 15, 10],
+    16: [35, 20, 15, 10],
+    15: [45, 20, 10],
+    14: [40, 20, 10],
+    13: [35, 20, 10],
+    12: [30, 20, 10],
+    11: [35, 20],
+    10: [30, 20],
+    9: [25, 20],
+    8: [25, 15],
+    7: [20, 15],
+    6: [20, 10],
+    5: [15, 10]
+  };
+
+  function getPointsPayoutSchedule(participantCount, pot) {
+    if (participantCount <= 4) return [pot];
+    return pointsPayoutScheduleByPlayerCount[participantCount] || [];
+  }
+
+  function getPointsPayoutStandings(section) {
+    let currentRank = 1;
+    const standings = getPointsPlayers()
+      .map((player) => {
+        const result = getPointsDifferential(player, section);
+
+        return {
+          player,
+          points: result.points || 0,
+          target: result.target || 0,
+          differential: result.differential,
+          display: result.display || "-"
+        };
+      })
+      .sort((firstPlayer, secondPlayer) => {
+        if (secondPlayer.differential !== firstPlayer.differential) {
+          return secondPlayer.differential - firstPlayer.differential;
+        }
+
+        if (secondPlayer.points !== firstPlayer.points) {
+          return secondPlayer.points - firstPlayer.points;
+        }
+
+        return firstPlayer.player.name.localeCompare(secondPlayer.player.name);
+      });
+
+    return standings.map((standing, index) => {
+      const previousStanding = standings[index - 1];
+      const nextStanding = standings[index + 1];
+      const tiedWithPrevious = previousStanding
+        && previousStanding.differential === standing.differential
+        && previousStanding.points === standing.points;
+      const tiedWithNext = nextStanding
+        && nextStanding.differential === standing.differential
+        && nextStanding.points === standing.points;
+
+      if (!tiedWithPrevious) {
+        currentRank = index + 1;
+      }
+
+      return {
+        ...standing,
+        rank: currentRank,
+        rankLabel: tiedWithPrevious || tiedWithNext ? `T${currentRank}` : String(currentRank)
+      };
+    });
+  }
+
+  function getPaidPointsWinners(section, pot, participantCount) {
+    const standings = getPointsPayoutStandings(section);
+    const payoutSchedule = getPointsPayoutSchedule(participantCount, pot);
+    const paidWinners = [];
+
+    for (let index = 0; index < standings.length; index += 1) {
+      const tiedPlayers = standings.filter((standing) => standing.rank === standings[index].rank);
+      const firstPositionIndex = standings[index].rank - 1;
+      const paidPositions = Array.from({ length: tiedPlayers.length }, (_, offset) =>
+        payoutSchedule[firstPositionIndex + offset] || 0
+      );
+      const tiedPot = paidPositions.reduce((total, payout) => total + payout, 0);
+
+      if (tiedPot > 0) {
+        const tiedPayouts = allocateRoundedDollars(tiedPot, tiedPlayers.length);
+
+        tiedPlayers.forEach((standing, tiedIndex) => {
+          paidWinners.push({
+            place: standing.rank,
+            playerId: standing.player.id,
+            playerName: standing.player.name,
+            rank: standing.rank,
+            rankLabel: standing.rankLabel,
+            points: standing.points,
+            target: standing.target,
+            differential: standing.differential,
+            display: standing.display,
+            payout: tiedPayouts[tiedIndex] || 0
+          });
+        });
+      }
+
+      index += tiedPlayers.length - 1;
+    }
+
+    return {
+      standings,
+      payoutSchedule,
+      winners: paidWinners
+    };
+  }
+
   function getPointsPayoutSummary() {
     const pointsPlayers = getPointsPlayers();
     const amountPerPlayer = getGameAmount("pointsGame");
     const enabled = roundSettings.games?.pointsGame?.enabled === true && pointsPlayers.length > 0;
-    const totalPot = enabled ? Math.round(amountPerPlayer * pointsPlayers.length) : 0;
-    const sectionPots = allocateRoundedDollars(totalPot, 3);
+    const perSectionAmount = Math.round(amountPerPlayer / 3);
+    const sectionPot = enabled ? perSectionAmount * pointsPlayers.length : 0;
+    const totalPot = sectionPot * 3;
 
-    function getSection(section, sectionIndex) {
-      const result = getPointsLeaders(section);
-      const winners = result.leaders || [];
-      const pot = sectionPots[sectionIndex] || 0;
-      const winnerPayouts = allocateRoundedDollars(pot, winners.length);
+    function getSection(section) {
+      const paidResults = getPaidPointsWinners(section, sectionPot, pointsPlayers.length);
+      const firstWinner = paidResults.standings[0] || null;
+      const payouts = paidResults.winners.map((winner) => ({
+        place: winner.place || winner.rank,
+        playerId: winner.playerId,
+        playerName: winner.playerName,
+        score: winner.differential,
+        points: winner.points,
+        target: winner.target,
+        payout: winner.payout,
+        rank: winner.rank,
+        rankLabel: winner.rankLabel,
+        differential: winner.differential,
+        display: winner.display
+      }));
 
       return {
         section,
-        pot,
-        points: result.points || 0,
-        target: result.target || 0,
-        differential: result.differential,
-        display: result.display || "-",
-        winners: winners.map((winner, winnerIndex) => ({
-          playerId: winner.player.id,
-          playerName: winner.player.name,
-          points: winner.points || 0,
-          target: winner.target || 0,
-          differential: winner.differential,
-          display: winner.display || "-",
-          payout: winnerPayouts[winnerIndex] || 0
-        }))
+        pot: sectionPot,
+        points: firstWinner?.points || 0,
+        target: firstWinner?.target || 0,
+        differential: firstWinner?.differential ?? null,
+        display: firstWinner?.display || "-",
+        payoutSchedule: paidResults.payoutSchedule,
+        standings: paidResults.standings.map((standing) => ({
+          playerId: standing.player.id,
+          playerName: standing.player.name,
+          rank: standing.rank,
+          rankLabel: standing.rankLabel,
+          points: standing.points,
+          target: standing.target,
+          differential: standing.differential,
+          display: standing.display
+        })),
+        winners: payouts,
+        payouts
       };
     }
+
+    const front = getSection("front");
+    const back = getSection("back");
+    const overall = getSection("overall");
 
     return {
       enabled,
       amountPerPlayer,
       participantCount: pointsPlayers.length,
       totalPot,
-      sectionPot: sectionPots[0] || 0,
-      sectionPots,
-      front: getSection("front", 0),
-      back: getSection("back", 1),
-      overall: getSection("overall", 2)
+      sectionPot,
+      sectionPots: [sectionPot, sectionPot, sectionPot],
+      front,
+      back,
+      overall,
+      frontPayouts: front.payouts,
+      backPayouts: back.payouts,
+      overallPayouts: overall.payouts
     };
   }
 
@@ -609,6 +746,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
       totalPot,
       totalPotCents,
       totalWinningSkins,
+      valuePerSkin: totalWinningSkins > 0 ? roundMoney(totalPot / totalWinningSkins) : 0,
       payoutPerSkin: skinDollarPayouts[0] || 0,
       winners: winners.map((item) => ({
         playerId: item.player.id,
@@ -628,17 +766,62 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     }
 
     if (savedRound?.payoutSummary) {
+      if (!savedPointsPayoutLooksCurrent(savedRound.payoutSummary)) {
+        console.info("OGS payout trace: rebuilding stale saved points payout snapshot", {
+          roundId,
+          participantCount: getPointsPlayers().length,
+          savedFrontWinners: savedRound.payoutSummary.points?.front?.winners?.length || 0,
+          savedBackWinners: savedRound.payoutSummary.points?.back?.winners?.length || 0,
+          savedOverallWinners: savedRound.payoutSummary.points?.overall?.winners?.length || 0
+        });
+        return buildFreshPayoutSummary();
+      }
+
       return savedRound.payoutSummary;
     }
 
+    return buildFreshPayoutSummary();
+  }
+
+  function savedPointsPayoutLooksCurrent(payoutSummary) {
+    const points = payoutSummary?.points;
+
+    if (points?.enabled !== true) return true;
+
+    const participantCount = Number(points.participantCount || getPointsPlayers().length);
+    const sectionPot = Number(points.sectionPot || points.front?.pot || 0);
+    const expectedPaidPlaces = getPointsPayoutSchedule(participantCount, sectionPot).length;
+
+    if (expectedPaidPlaces <= 1) return true;
+
+    return ["front", "back", "overall"].every((section) => {
+      const savedWinners = points[section]?.payouts || points[section]?.winners || [];
+      const savedPayouts = points[`${section}Payouts`] || [];
+      const rowCount = Math.max(savedWinners.length, savedPayouts.length);
+      const winnerTakeAllValue = Number(savedWinners[0]?.payout || savedPayouts[0]?.payout || 0);
+
+      if (rowCount < expectedPaidPlaces) return false;
+      if (rowCount === 1 && winnerTakeAllValue === sectionPot) return false;
+
+      return true;
+    });
+  }
+
+  function buildFreshPayoutSummary() {
     const points = getPointsPayoutSummary();
     const skins = getSkinsPayoutSummary();
-    const pointWinnings = {};
+    const frontPointWinnings = {};
+    const backPointWinnings = {};
+    const overallPointWinnings = {};
     const skinWinnings = {};
 
-    ["front", "back", "overall"].forEach((section) => {
+    [
+      { section: "front", winnings: frontPointWinnings },
+      { section: "back", winnings: backPointWinnings },
+      { section: "overall", winnings: overallPointWinnings }
+    ].forEach(({ section, winnings }) => {
       points[section].winners.forEach((winner) => {
-        pointWinnings[winner.playerId] = roundMoney((pointWinnings[winner.playerId] || 0) + winner.payout);
+        winnings[winner.playerId] = roundMoney((winnings[winner.playerId] || 0) + winner.payout);
       });
     });
 
@@ -651,12 +834,18 @@ window.OGSGolf.state.createRoundState = function createRoundState(
       skins,
       playerTotals: players
         .map((player) => {
-          const pointsWinnings = pointWinnings[player.id] || 0;
+          const frontPointsWinnings = frontPointWinnings[player.id] || 0;
+          const backPointsWinnings = backPointWinnings[player.id] || 0;
+          const overallPointsWinnings = overallPointWinnings[player.id] || 0;
+          const pointsWinnings = roundMoney(frontPointsWinnings + backPointsWinnings + overallPointsWinnings);
           const skinsWinnings = skinWinnings[player.id] || 0;
 
           return {
             playerId: player.id,
             playerName: player.name,
+            frontPointsWinnings,
+            backPointsWinnings,
+            overallPointsWinnings,
             pointsWinnings,
             skinsWinnings,
             totalWinnings: roundMoney(pointsWinnings + skinsWinnings)
