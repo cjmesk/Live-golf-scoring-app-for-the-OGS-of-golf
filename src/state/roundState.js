@@ -15,7 +15,8 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     getSkinWinner,
     getStrokesOnHole
   } = window.OGSGolf.rules;
-  const totalHoles = course.tees.white.length;
+  const defaultTeeId = course.teeOrder?.[0] || Object.keys(course.tees || {})[0];
+  const totalHoles = course.tees[defaultTeeId].length;
   const savedScores = {};
   const courseHandicaps = {};
   const draftScores = {};

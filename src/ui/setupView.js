@@ -25,6 +25,14 @@ function createDisabledGames() {
   }, {});
 }
 
+function getValidCourseTeeId(course, teeId) {
+  if (course.teeOrder.includes(teeId)) {
+    return teeId;
+  }
+
+  return course.teeOrder[0];
+}
+
 window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, members) {
   elements.courseSelect.innerHTML = courses
     .map((course) => `<option value="${course.id}">${course.name}</option>`)
@@ -74,6 +82,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
       const isPlayingToday = selectedMemberIds.has(member.id);
       const isInPointsGame = isPlayingToday && pointsParticipation.get(member.id) === true;
       const isInSkinsGame = isPlayingToday && skinsParticipation.get(member.id) === true;
+      const selectedTeeId = getValidCourseTeeId(selectedCourse, teeOverrides.get(member.id) || member.tee);
       const row = document.createElement("div");
       row.className = "member-row";
       row.innerHTML = `
@@ -88,7 +97,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
           <span>Tees</span>
           <select class="field-control" data-tee-for="${member.id}">
             ${teeOptions.map((tee) => `
-              <option value="${tee.id}"${(teeOverrides.get(member.id) || member.tee) === tee.id ? " selected" : ""}>${tee.label}</option>
+              <option value="${tee.id}"${selectedTeeId === tee.id ? " selected" : ""}>${tee.label}</option>
             `).join("")}
           </select>
         </label>
@@ -158,7 +167,7 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
     .filter((member) => selectedMemberIds.has(member.id))
     .map((member) => ({
       ...member,
-      tee: teeOverrides.get(member.id) || member.tee,
+      tee: getValidCourseTeeId(course, teeOverrides.get(member.id) || member.tee),
       inSkins: skinsParticipation.get(member.id) === true,
       inPoints: pointsParticipation.get(member.id) === true,
       inTeamChallenge: false,

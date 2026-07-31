@@ -1139,6 +1139,20 @@ body.is-scoring .current-hole-status {
   font-weight: 900;
 }
 
+.scorecard-gross-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.scorecard-stroke-dots {
+  color: var(--green-dark);
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .skin-badge {
   display: inline-block;
   padding: 2px 4px;

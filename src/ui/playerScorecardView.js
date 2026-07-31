@@ -114,6 +114,25 @@ window.OGSGolf.ui.renderPlayerScorecard = function renderPlayerScorecard(element
     return `<td>${value === null || value === undefined || value === "" ? "-" : `<span class="${className}">${value}</span>`}</td>`;
   }
 
+  function renderHandicapDots(strokesReceived) {
+    const strokeCount = Math.max(0, Math.floor(Number(strokesReceived) || 0));
+
+    if (strokeCount === 0) return "";
+
+    const dots = Array.from({ length: strokeCount }, () => "&bull;").join("");
+    return `<span class="scorecard-stroke-dots" aria-label="${strokeCount} handicap stroke${strokeCount === 1 ? "" : "s"}">${dots}</span>`;
+  }
+
+  function renderGrossCell(score, hole, holeIndex) {
+    if (!hasScore(score)) {
+      return renderCell("-");
+    }
+
+    const result = roundState.getPlayerHoleResult(player, holeIndex);
+    const dots = renderHandicapDots(result?.strokesReceived);
+    return `<td><span class="scorecard-gross-cell"><span class="${getGrossClass(score, hole.par)}">${score}</span>${dots}</span></td>`;
+  }
+
   function renderGrid(title, holeIndexes, totalLabel) {
     const holeHeader = holeIndexes.map((holeIndex) => `<th scope="col">${holeIndex + 1}</th>`).join("");
     const holes = holeIndexes.map((holeIndex) => roundState.getHoleForPlayer(player, holeIndex));
@@ -121,17 +140,10 @@ window.OGSGolf.ui.renderPlayerScorecard = function renderPlayerScorecard(element
     const completedIndexes = holeIndexes.filter((holeIndex) => hasScore(roundState.savedScores[player.id]?.[holeIndex]));
     const totalGross = completedIndexes.reduce((sum, holeIndex) => sum + Number(roundState.savedScores[player.id]?.[holeIndex] || 0), 0);
     const totalPar = completedIndexes.reduce((sum, holeIndex) => sum + Number(roundState.getHoleForPlayer(player, holeIndex).par || 0), 0);
-    const totalNet = completedIndexes.reduce((sum, holeIndex) => {
-      const result = roundState.getPlayerHoleResult(player, holeIndex);
-      return Number.isFinite(Number(result?.netScore)) ? sum + Number(result.netScore) : sum;
-    }, 0);
     const totalPoints = completedIndexes.reduce((sum, holeIndex) => {
       const grossScore = roundState.savedScores[player.id]?.[holeIndex];
       return sum + (roundState.isInPoints(player) && !dnfStatus ? getPoints(grossScore, roundState.getHoleForPlayer(player, holeIndex).par) : 0);
     }, 0);
-    const totalStrokes = completedIndexes.reduce((sum, holeIndex) =>
-      sum + Number(roundState.getPlayerHoleResult(player, holeIndex)?.strokesReceived || 0),
-    0);
     const skinCount = completedIndexes.filter((holeIndex) =>
       roundState.getSkinForHole(holeIndex)?.winnerId === player.id
     ).length;
@@ -142,25 +154,16 @@ window.OGSGolf.ui.renderPlayerScorecard = function renderPlayerScorecard(element
         <div class="player-scorecard-table-wrap">
           <table class="player-scorecard-table">
             <thead>
-              <tr><th scope="col">Label</th>${holeHeader}<th scope="col">${totalLabel}</th></tr>
+              <tr><th scope="col">Hole</th>${holeHeader}<th scope="col">${totalLabel}</th></tr>
             </thead>
             <tbody>
-              <tr><th scope="row">Hole</th>${holeIndexes.map((holeIndex) => renderCell(holeIndex + 1)).join("")}${renderCell(totalLabel)}</tr>
               <tr><th scope="row">Par</th>${holes.map((hole) => renderCell(hole.par)).join("")}${renderCell(totalPar || "-")}</tr>
               <tr><th scope="row">HCP</th>${holes.map((hole) => renderCell(hole.handicap)).join("")}${renderCell("-")}</tr>
               <tr><th scope="row">Gross</th>${holeIndexes.map((holeIndex, index) => {
                 const score = scores[index];
                 const hole = holes[index];
-                return renderCell(hasScore(score) ? score : "-", getGrossClass(score, hole.par));
+                return renderGrossCell(score, hole, holeIndex);
               }).join("")}${renderCell(completedIndexes.length ? totalGross : "-")}</tr>
-              <tr><th scope="row">Strokes</th>${holeIndexes.map((holeIndex) => {
-                const result = roundState.getPlayerHoleResult(player, holeIndex);
-                return renderCell(hasScore(scores[holeIndexes.indexOf(holeIndex)]) ? result?.strokesReceived ?? 0 : "-");
-              }).join("")}${renderCell(completedIndexes.length ? totalStrokes : "-")}</tr>
-              <tr><th scope="row">Net</th>${holeIndexes.map((holeIndex, index) => {
-                const result = roundState.getPlayerHoleResult(player, holeIndex);
-                return renderCell(hasScore(scores[index]) ? result?.netScore ?? "-" : "-");
-              }).join("")}${renderCell(completedIndexes.length ? totalNet : "-")}</tr>
               <tr><th scope="row">Points</th>${holeIndexes.map((holeIndex, index) => {
                 const score = scores[index];
                 return renderCell(hasScore(score) && roundState.isInPoints(player) && !dnfStatus

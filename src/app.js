@@ -326,7 +326,9 @@ function createReadOnlyRoundStateFromSavedRound(savedRound) {
       ...(normalizedRound.roundSettings?.games || {})
     },
     groups: normalizedRound.roundSettings?.groups || [savedPlayers.map((player) => player.id)],
-    groupRecords: normalizedRound.roundSettings?.groupRecords || [{ holesToPlay: savedCourse.tees.white.length }],
+    groupRecords: normalizedRound.roundSettings?.groupRecords || [{
+      holesToPlay: savedCourse.tees[savedCourse.teeOrder?.[0] || Object.keys(savedCourse.tees || {})[0]].length
+    }],
     course: savedCourse,
     players: savedPlayers
   };

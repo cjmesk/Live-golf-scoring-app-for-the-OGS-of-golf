@@ -4,9 +4,10 @@ window.OGSGolf.ui = window.OGSGolf.ui || {};
 window.OGSGolf.ui.renderHoleView = function renderHoleView(elements, course, players, roundState, options = {}) {
   const currentHoleIndex = roundState.currentHoleIndex;
   const firstPlayer = players[0];
+  const defaultTeeId = course.teeOrder?.[0] || Object.keys(course.tees || {})[0];
   const currentHole = firstPlayer
     ? roundState.getHoleForPlayer(firstPlayer)
-    : course.tees.white[currentHoleIndex];
+    : course.tees[defaultTeeId][currentHoleIndex];
 
   elements.holeTitle.textContent = `Hole ${currentHoleIndex + 1}`;
   elements.holeDetails.innerHTML = `
