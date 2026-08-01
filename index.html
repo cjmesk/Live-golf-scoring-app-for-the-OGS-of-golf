@@ -294,6 +294,23 @@
         </div>
         <p id="handicapAdjustStatus" class="cloud-save-status"></p>
       </div>
+      <div id="teeChangePanel" class="dnf-confirm-panel handicap-adjust-panel is-hidden">
+        <h3>Change Tee</h3>
+        <p id="teeChangePlayerName"></p>
+        <div class="handicap-adjust-details">
+          <span>Current Tee: <strong id="currentTeeName">-</strong></span>
+          <span>Current Course Handicap: <strong id="currentTeeCourseHandicap">0</strong></span>
+        </div>
+        <label class="field-label" for="newTeeSelect">New Tee</label>
+        <select id="newTeeSelect" class="field-control"></select>
+        <div id="newTeeDetails" class="player-details"></div>
+        <p class="player-details">This changes the tee for this round only. Gross scores already entered will stay the same.</p>
+        <div class="dnf-confirm-actions">
+          <button id="cancelTeeChange" type="button" class="secondary-button">Cancel</button>
+          <button id="saveTeeChange" type="button" class="save-button">Confirm Tee Change</button>
+        </div>
+        <p id="teeChangeStatus" class="cloud-save-status"></p>
+      </div>
 
       <div id="commissionerGroupControls" class="commissioner-override-panel is-hidden">
         <button id="toggleScoreOverride" type="button" class="secondary-button">Score Override</button>
@@ -561,16 +578,16 @@
   <script src="src/rules/skins.js?v=20260709-v098-menu"></script>
   <script src="src/state/playerStorage.js?v=20260709-v098-menu"></script>
   <script src="src/state/scorerStorage.js?v=20260711-device-scorer"></script>
-  <script src="src/state/roundState.js?v=20260731-park-mammoth"></script>
+  <script src="src/state/roundState.js?v=20260801-change-tee"></script>
   <script src="src/state/roundStorage.js?v=20260709-v098-menu"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/roundCloudService.js?v=20260728-handicap-adjust"></script>
-  <script src="src/ui/dom.js?v=20260728-player-scorecard"></script>
+  <script src="src/ui/dom.js?v=20260801-change-tee"></script>
   <script src="src/ui/formatters.js?v=20260710-index-course-handicap"></script>
   <script src="src/ui/setupView.js?v=20260731-park-mammoth"></script>
-  <script src="src/ui/holeView.js?v=20260731-park-mammoth"></script>
+  <script src="src/ui/holeView.js?v=20260801-change-tee"></script>
   <script src="src/ui/leaderboardView.js?v=20260728-player-scorecard"></script>
   <script src="src/ui/pointsPayoutView.js?v=20260710-points-quota"></script>
   <script src="src/ui/skinsView.js?v=20260709-v098-menu"></script>
@@ -580,6 +597,6 @@
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
   <script src="src/ui/groupSetupView.js?v=20260710-flex-hole-order"></script>
   <script src="src/ui/eventSummaryView.js?v=20260710-round-setup"></script>
-  <script src="src/app.js?v=20260731-park-mammoth"></script>
+  <script src="src/app.js?v=20260801-change-tee"></script>
 </body>
 </html>

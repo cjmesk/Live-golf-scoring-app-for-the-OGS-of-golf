@@ -23,11 +23,16 @@ window.OGSGolf.ui.renderHoleView = function renderHoleView(elements, course, pla
     const score = roundState.draftScores[player.id];
     const dnfStatus = roundState.getPlayerDnfStatus(player);
     const isDnf = Boolean(dnfStatus);
+    const canChangeTee = options.commissionerMode || options.currentScorerId === player.id;
+    const changeTeeButton = canChangeTee
+      ? `<button type="button" class="player-option-button" data-change-tee-player-id="${player.id}">Change Tee</button>`
+      : "";
     const playerOptions = isDnf
       ? options.commissionerMode
-        ? `<button type="button" class="player-option-button" data-restore-player-id="${player.id}">Restore Player to Active</button>`
-        : ""
+        ? `${changeTeeButton}<button type="button" class="player-option-button" data-restore-player-id="${player.id}">Restore Player to Active</button>`
+        : changeTeeButton
       : `
+        ${changeTeeButton}
         <button type="button" class="player-option-button" data-dnf-player-id="${player.id}">End Player Round - DNF</button>
         ${options.commissionerMode ? `<button type="button" class="player-option-button" data-adjust-handicap-player-id="${player.id}">Adjust Handicap</button>` : ""}
       `;

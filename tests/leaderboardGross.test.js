@@ -52,11 +52,22 @@ const course = {
       par,
       handicap: index + 1,
       yards: 100 + index
+    })),
+    gold: pars.map((par, index) => ({
+      hole: index + 1,
+      par,
+      handicap: index + 1,
+      yards: 80 + index
     }))
   },
   teeRatings: {
     white: {
       courseRating: 72,
+      slopeRating: 113,
+      par: 72
+    },
+    gold: {
+      courseRating: 66,
       slopeRating: 113,
       par: 72
     }
@@ -95,6 +106,38 @@ assertEqual(chicagoRoundState.getPointsDifferential(chicagoPlayer, "front").targ
 assertEqual(chicagoRoundState.getPointsDifferential(chicagoPlayer, "back").target, 13, "Chicago back quota is half overall quota");
 assertEqual(chicagoRoundState.getPointsDifferential(chicagoPlayer, "overall").target, 26, "Chicago 18-hole overall target");
 assertEqual(chicagoNineRoundState.getPointsDifferential(chicagoPlayer, "overall").target, 13, "Chicago 9-hole target is half overall quota");
+
+const teeChangePlayer = { id: "tee-change-player", name: "Tee Change Player", handicap: 6, tee: "white", inPoints: true, inSkins: true };
+const teeChangeRoundState = window.OGSGolf.state.createRoundState(course, [teeChangePlayer], {
+  course,
+  players: [teeChangePlayer],
+  groups: [["tee-change-player"]],
+  groupRecords: [{ holesToPlay: 18 }],
+  games: {
+    pointsGame: { enabled: true },
+    netSkins: { enabled: true }
+  },
+  playerStatuses: {}
+});
+
+teeChangeRoundState.setDraftScore("tee-change-player", 5);
+teeChangeRoundState.saveCurrentHole([teeChangePlayer]);
+
+assertEqual(teeChangeRoundState.savedScores["tee-change-player"][0], 5, "Tee change test starts with saved gross score");
+assertEqual(teeChangeRoundState.courseHandicaps["tee-change-player"], 6, "White tee course handicap is based on the starting tee");
+assertEqual(teeChangeRoundState.getPlayerHoleResult(teeChangePlayer, 0).strokesReceived, 1, "White tee strokes are applied before tee change");
+assertEqual(teeChangeRoundState.getPlayerHoleResult(teeChangePlayer, 0).netScore, 4, "White tee net score is gross minus stroke");
+
+const teeUpdate = teeChangeRoundState.updateRoundPlayerTee("tee-change-player", "gold");
+
+assertEqual(Boolean(teeUpdate), true, "Round-only tee update returns a result");
+assertEqual(teeChangePlayer.tee, "gold", "Round-only player tee changes to selected tee");
+assertEqual(teeChangeRoundState.savedScores["tee-change-player"][0], 5, "Gross score is preserved after tee change");
+assertEqual(teeChangeRoundState.courseHandicaps["tee-change-player"], 0, "Course handicap recalculates from the new tee");
+assertEqual(teeChangeRoundState.getPlayerHoleResult(teeChangePlayer, 0).strokesReceived, 0, "Strokes received rebuild from the new tee");
+assertEqual(teeChangeRoundState.getPlayerHoleResult(teeChangePlayer, 0).netScore, 5, "Net score recalculates without changing gross score");
+assertEqual(teeChangeRoundState.getPointsDifferential(teeChangePlayer, "overall").target, 36, "Chicago target recalculates from the new course handicap");
+
 const roundState = window.OGSGolf.state.createRoundState(course, players, {
   course,
   players,
@@ -419,6 +462,7 @@ finalSummaryRoundState.applyCloudHoleScores([
 
 const finalSummaryElement = { innerHTML: "" };
 window.OGSGolf.ui.renderFinalSummary({ finalSummary: finalSummaryElement }, finalSummaryRoundState);
+const finalSummaryText = finalSummaryElement.innerHTML.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 if (finalSummaryElement.innerHTML.indexOf("Points Results") > finalSummaryElement.innerHTML.indexOf("Gross Results")) {
   throw new Error("Round Complete page must show Points Results above Gross Results.");
@@ -444,13 +488,13 @@ if (finalSummaryElement.innerHTML.indexOf("Full Points Standings") < finalSummar
   throw new Error("Full points standings must appear below the top-three points sections.");
 }
 
-if (!finalSummaryElement.innerHTML.includes("1. Points Player")
-  || !finalSummaryElement.innerHTML.includes("2. Tie Player")) {
+if (!finalSummaryText.includes("1. Points Player")
+  || !finalSummaryText.includes("2. Tie Player")) {
   throw new Error("Points Results must rank the best quota result first.");
 }
 
-if (!finalSummaryElement.innerHTML.includes("72 points / 36 needed")
-  || !finalSummaryElement.innerHTML.includes("36 points / 18 needed")) {
+if (!finalSummaryText.includes("72 points / 36 needed")
+  || !finalSummaryText.includes("36 points / 18 needed")) {
   throw new Error("Points Results must show points earned and points needed to break even.");
 }
 

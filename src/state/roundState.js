@@ -1359,6 +1359,33 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     };
   }
 
+  function updateRoundPlayerTee(playerId, teeId) {
+    const player = players.find((item) => item.id === playerId);
+
+    if (!player || !course.tees?.[teeId] || !course.teeRatings?.[teeId]) return null;
+
+    const previousTee = player.tee;
+    const previousCourseHandicap = Number(courseHandicaps[player.id] ?? getCourseHandicap(player, course));
+    const details = getCourseHandicapDetails(player, course, teeId);
+
+    player.tee = teeId;
+    player.courseHandicap = details.courseHandicap;
+    courseHandicaps[player.id] = details.courseHandicap;
+
+    rebuildSavedHoleResultForPlayer(player);
+    recalculateSkins();
+    loadDraftScores();
+
+    return {
+      player,
+      previousTee,
+      newTee: teeId,
+      previousCourseHandicap,
+      newCourseHandicap: details.courseHandicap,
+      details
+    };
+  }
+
   function applyCloudRoundPlayers(roundPlayerRows = []) {
     roundPlayerRows.forEach((row) => {
       const player = players.find((item) => item.id === row.player_id);
@@ -1523,6 +1550,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     applyCloudHoleScores,
     replaceSavedScoresFromCloud,
     updateRoundPlayerHandicap,
+    updateRoundPlayerTee,
     applyCloudRoundPlayers,
     applyCloudPlayerStatuses,
     markPlayerDnf,

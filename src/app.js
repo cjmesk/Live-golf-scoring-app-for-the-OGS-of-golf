@@ -43,6 +43,7 @@ let commissionerMode = scorerStorage.isCommissioner();
 let viewOnlyMode = false;
 let pendingDnfPlayerId = null;
 let pendingHandicapPlayerId = null;
+let pendingTeePlayerId = null;
 let scoreOverrideOpen = false;
 let scoreOverrideActive = false;
 let scoreOverrideReturnGroupIndex = 0;
@@ -1025,7 +1026,10 @@ function renderCurrentHole() {
   if (getGroupRecord(currentGroupIndex).status === "completed" || isGroupComplete(currentGroupIndex)) {
     syncRoundStateToCurrentGroup();
   } else {
-    renderHoleView(elements, selectedCourse, getCurrentGroupPlayers(), roundState, { commissionerMode });
+    renderHoleView(elements, selectedCourse, getCurrentGroupPlayers(), roundState, {
+      commissionerMode,
+      currentScorerId
+    });
   }
   renderHoleStatus();
 }
@@ -1385,6 +1389,7 @@ function openHandicapAdjust(playerId) {
   const player = selectedPlayers.find((item) => item.id === playerId);
   if (!player) return;
 
+  closeTeeChange();
   pendingHandicapPlayerId = playerId;
   elements.handicapAdjustPlayerName.textContent = player.name;
   elements.currentHandicapIndex.textContent = String(player.handicap ?? player.handicapIndex ?? 0);
@@ -1400,6 +1405,60 @@ function closeHandicapAdjust() {
   pendingHandicapPlayerId = null;
   elements.handicapAdjustPanel.classList.add("is-hidden");
   elements.handicapAdjustStatus.textContent = "";
+}
+
+function getTeeLabel(teeId) {
+  return selectedCourse.teeRatings?.[teeId]?.label || teeId;
+}
+
+function canChangeTeeForPlayer(playerId) {
+  return commissionerMode || currentScorerId === playerId;
+}
+
+function renderTeeChangeDetails() {
+  if (!roundState || !pendingTeePlayerId) return;
+
+  const player = selectedPlayers.find((item) => item.id === pendingTeePlayerId);
+  const teeId = elements.newTeeSelect.value;
+  const teeRating = selectedCourse.teeRatings?.[teeId];
+
+  if (!player || !teeRating) {
+    elements.newTeeDetails.textContent = "";
+    return;
+  }
+
+  const details = window.OGSGolf.rules.getCourseHandicapDetails(player, selectedCourse, teeId);
+  elements.newTeeDetails.textContent =
+    `New ${getTeeLabel(teeId)} tee: Rating ${details.courseRating}, Slope ${details.slopeRating}, Par ${details.par}, Course Handicap ${details.courseHandicap}.`;
+}
+
+function openTeeChange(playerId) {
+  if (!roundState || !canChangeTeeForPlayer(playerId)) return;
+
+  const player = selectedPlayers.find((item) => item.id === playerId);
+  if (!player) return;
+
+  closeHandicapAdjust();
+  pendingTeePlayerId = playerId;
+  elements.teeChangePlayerName.textContent = player.name;
+  elements.currentTeeName.textContent = getTeeLabel(player.tee);
+  elements.currentTeeCourseHandicap.textContent = String(roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? 0);
+  elements.newTeeSelect.innerHTML = selectedCourse.teeOrder
+    .filter((teeId) => selectedCourse.tees?.[teeId] && selectedCourse.teeRatings?.[teeId])
+    .map((teeId) => `<option value="${teeId}"${teeId === player.tee ? " selected" : ""}>${getTeeLabel(teeId)}</option>`)
+    .join("");
+  elements.teeChangeStatus.textContent = "Confirm to apply this tee change to this round only.";
+  renderTeeChangeDetails();
+  elements.teeChangePanel.classList.remove("is-hidden");
+  elements.teeChangePanel.scrollIntoView({ behavior: "auto", block: "center" });
+  elements.newTeeSelect.focus();
+}
+
+function closeTeeChange() {
+  pendingTeePlayerId = null;
+  elements.teeChangePanel.classList.add("is-hidden");
+  elements.teeChangeStatus.textContent = "";
+  elements.newTeeDetails.textContent = "";
 }
 
 function buildRoundPlayerCloudRow(player) {
@@ -1422,6 +1481,7 @@ function syncActiveRoundPlayerSnapshot(player) {
     item.id === player.id
       ? {
         ...item,
+        tee: player.tee,
         handicap: player.handicap,
         handicapIndex: player.handicapIndex,
         courseHandicap: player.courseHandicap
@@ -1434,6 +1494,7 @@ function syncActiveRoundPlayerSnapshot(player) {
       item.id === player.id
         ? {
           ...item,
+          tee: player.tee,
           handicap: player.handicap,
           handicapIndex: player.handicapIndex,
           courseHandicap: player.courseHandicap
@@ -1443,7 +1504,7 @@ function syncActiveRoundPlayerSnapshot(player) {
   }
 }
 
-async function updatePlayerSavedHoleScoresForHandicap(player) {
+async function updatePlayerSavedHoleScoresForDerivedValues(player) {
   const scoresResult = await roundCloudService.fetchPlayerHoleScores({
     roundId: roundState.id,
     playerId: player.id
@@ -1504,7 +1565,7 @@ async function saveHandicapAdjust() {
     return;
   }
 
-  const holeScoreResult = await updatePlayerSavedHoleScoresForHandicap(update.player);
+  const holeScoreResult = await updatePlayerSavedHoleScoresForDerivedValues(update.player);
 
   if (!holeScoreResult.ok) {
     elements.saveHandicapAdjust.disabled = false;
@@ -1520,6 +1581,58 @@ async function saveHandicapAdjust() {
   renderApp();
   elements.saveStatusMessage.textContent =
     `${player.name}\nRound GHIN changed from ${update.previousHandicapIndex} to ${update.newHandicapIndex}\nCourse Handicap changed from ${update.previousCourseHandicap} to ${update.newCourseHandicap}\nThis change applies to this round only.`;
+}
+
+async function saveTeeChange() {
+  if (!roundState || !pendingTeePlayerId || !canChangeTeeForPlayer(pendingTeePlayerId)) return;
+
+  const player = selectedPlayers.find((item) => item.id === pendingTeePlayerId);
+  const newTee = elements.newTeeSelect.value;
+
+  if (!player || !selectedCourse.tees?.[newTee] || !selectedCourse.teeRatings?.[newTee]) {
+    elements.teeChangeStatus.textContent = "Choose a valid tee for this course.";
+    return;
+  }
+
+  elements.saveTeeChange.disabled = true;
+  elements.teeChangeStatus.textContent = "Saving round tee...";
+
+  const update = roundState.updateRoundPlayerTee(player.id, newTee);
+
+  if (!update) {
+    elements.saveTeeChange.disabled = false;
+    elements.teeChangeStatus.textContent = "Tee change failed.";
+    return;
+  }
+
+  syncActiveRoundPlayerSnapshot(update.player);
+
+  const roundPlayerResult = await roundCloudService.upsertRoundPlayer(buildRoundPlayerCloudRow(update.player));
+
+  if (!roundPlayerResult.ok) {
+    elements.saveTeeChange.disabled = false;
+    elements.teeChangeStatus.textContent =
+      `${roundPlayerResult.message || "Cloud round-player save failed."} The local round was updated on this device.`;
+    renderApp();
+    return;
+  }
+
+  const holeScoreResult = await updatePlayerSavedHoleScoresForDerivedValues(update.player);
+
+  if (!holeScoreResult.ok) {
+    elements.saveTeeChange.disabled = false;
+    elements.teeChangeStatus.textContent =
+      `${holeScoreResult.message || "Cloud score recalculation failed."} Gross scores were preserved.`;
+    renderApp();
+    return;
+  }
+
+  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex);
+  elements.saveTeeChange.disabled = false;
+  closeTeeChange();
+  renderApp();
+  elements.saveStatusMessage.textContent =
+    `${player.name}\nRound tee changed from ${getTeeLabel(update.previousTee)} to ${getTeeLabel(update.newTee)}\nCourse Handicap changed from ${update.previousCourseHandicap} to ${update.newCourseHandicap}\nThis change applies to this round only.`;
 }
 
 async function confirmPlayerDnf() {
@@ -3271,6 +3384,7 @@ elements.holePlayers.addEventListener("click", (event) => {
   const dnfButton = event.target.closest("[data-dnf-player-id]");
   const restoreButton = event.target.closest("[data-restore-player-id]");
   const adjustHandicapButton = event.target.closest("[data-adjust-handicap-player-id]");
+  const changeTeeButton = event.target.closest("[data-change-tee-player-id]");
 
   if (dnfButton) {
     closeMobilePlayerOptions();
@@ -3287,6 +3401,12 @@ elements.holePlayers.addEventListener("click", (event) => {
   if (adjustHandicapButton) {
     closeMobilePlayerOptions();
     openHandicapAdjust(adjustHandicapButton.dataset.adjustHandicapPlayerId);
+    return;
+  }
+
+  if (changeTeeButton) {
+    closeMobilePlayerOptions();
+    openTeeChange(changeTeeButton.dataset.changeTeePlayerId);
     return;
   }
 
@@ -3343,6 +3463,9 @@ elements.cancelDnf.addEventListener("click", closeDnfConfirmation);
 elements.confirmDnf.addEventListener("click", confirmPlayerDnf);
 elements.cancelHandicapAdjust.addEventListener("click", closeHandicapAdjust);
 elements.saveHandicapAdjust.addEventListener("click", saveHandicapAdjust);
+elements.newTeeSelect.addEventListener("change", renderTeeChangeDetails);
+elements.cancelTeeChange.addEventListener("click", closeTeeChange);
+elements.saveTeeChange.addEventListener("click", saveTeeChange);
 
 elements.previousHole.addEventListener("click", () => {
   if (!roundState) return;
