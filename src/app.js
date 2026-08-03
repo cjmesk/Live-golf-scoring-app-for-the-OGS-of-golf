@@ -862,17 +862,210 @@ function renderCommissionerGroupSelection() {
       const activeClass = index === currentGroupIndex ? " is-active" : "";
       const { statusText, actionText } = getCommissionerGroupRowText(index);
 
+      const addPlayerButton = index === 0
+        ? `
+          <button type="button" class="secondary-button add-active-player-button" data-add-active-player="true">
+            Add Player to Active Round
+          </button>
+        `
+        : "";
+
       return `
         <button type="button" class="score-override-row${activeClass}" data-commissioner-group-index="${index}">
           <strong>Group ${index + 1} - ${statusText} - ${actionText}</strong>
           <span>Scorer: ${getGroupScorerName(index)}</span>
           <span>${group.length} players | Starting hole ${record.startingHole || 1} | ${record.completedHoleNumbers.length}/${record.holesToPlay} holes saved</span>
         </button>
+        ${addPlayerButton}
       `;
     })
     .join("");
 
   renderLeaderboard(elements, selectedPlayers, roundState);
+}
+
+function getLatePlayerCandidates() {
+  const activePlayerIds = new Set(selectedPlayers.map((player) => player.id));
+
+  return members
+    .filter((member) => member.active !== false && !activePlayerIds.has(member.id))
+    .sort((firstMember, secondMember) => firstMember.name.localeCompare(secondMember.name));
+}
+
+function renderLatePlayerForm() {
+  if (!elements.latePlayerPanel) return;
+
+  const candidates = getLatePlayerCandidates();
+  const teeOptions = (selectedCourse.teeOrder || Object.keys(selectedCourse.tees || {}))
+    .map((teeId) => `<option value="${teeId}">${getTeeLabel(teeId)}</option>`)
+    .join("");
+  const groupOptions = (roundSettings.groups || [])
+    .map((group, index) => `<option value="${index}">Group ${index + 1}</option>`)
+    .join("");
+
+  elements.latePlayerSelect.innerHTML = candidates.length
+    ? candidates.map((player) => `<option value="${player.id}">${escapeText(player.name)}</option>`).join("")
+    : `<option value="">No active roster players available</option>`;
+  elements.latePlayerGroupSelect.innerHTML = groupOptions;
+  elements.latePlayerTeeSelect.innerHTML = teeOptions;
+  elements.latePlayerSelect.disabled = candidates.length === 0;
+  elements.latePlayerGroupSelect.disabled = candidates.length === 0;
+  elements.latePlayerTeeSelect.disabled = candidates.length === 0;
+  elements.saveLatePlayer.disabled = candidates.length === 0;
+  elements.latePlayerSkins.checked = false;
+  elements.latePlayerPoints.checked = false;
+  elements.latePlayerStatus.textContent = candidates.length
+    ? "Choose the player, group, tee, and games for this round only."
+    : "Every active roster player is already in this round.";
+}
+
+function openLatePlayerForm() {
+  if (!commissionerMode || !roundState || !roundSettings?.groups?.length) return;
+
+  renderLatePlayerForm();
+  elements.latePlayerPanel.classList.remove("is-hidden");
+  elements.latePlayerPanel.scrollIntoView({ behavior: "auto", block: "nearest" });
+}
+
+function closeLatePlayerForm() {
+  elements.latePlayerPanel?.classList.add("is-hidden");
+  if (elements.latePlayerStatus) elements.latePlayerStatus.textContent = "";
+}
+
+function buildLateRoundPlayer(member, teeId, inSkins, inPoints) {
+  const handicapIndex = Number(member.handicapIndex ?? member.handicap ?? 0);
+  const courseHandicap = window.OGSGolf.rules.getCourseHandicap(
+    {
+      ...member,
+      handicap: handicapIndex,
+      handicapIndex,
+      tee: teeId
+    },
+    selectedCourse,
+    teeId
+  );
+
+  return {
+    ...member,
+    handicap: handicapIndex,
+    handicapIndex,
+    tee: teeId,
+    courseHandicap,
+    inSkins,
+    inPoints,
+    inTeamChallenge: false,
+    teamId: "",
+    lateJoinHole: roundState.currentHoleIndex + 1
+  };
+}
+
+async function saveLatePlayer() {
+  if (!commissionerMode || !roundState || !roundSettings?.groups?.length) return;
+
+  const playerId = elements.latePlayerSelect.value;
+  const groupIndex = Number(elements.latePlayerGroupSelect.value);
+  const teeId = elements.latePlayerTeeSelect.value;
+  const member = members.find((item) => item.id === playerId);
+
+  if (!member || !Number.isInteger(groupIndex) || !roundSettings.groups[groupIndex] || !selectedCourse.tees?.[teeId]) {
+    elements.latePlayerStatus.textContent = "Choose a valid player, group, and tee.";
+    return;
+  }
+
+  if (selectedPlayers.some((player) => player.id === playerId)) {
+    elements.latePlayerStatus.textContent = "That player is already in this round.";
+    return;
+  }
+
+  elements.saveLatePlayer.disabled = true;
+  elements.latePlayerStatus.textContent = "Adding player to active round...";
+
+  const player = buildLateRoundPlayer(
+    member,
+    teeId,
+    elements.latePlayerSkins.checked,
+    elements.latePlayerPoints.checked
+  );
+  const preservedRound = roundState.getAutoSaveExport();
+  const previousGroupIndex = currentGroupIndex;
+
+  selectedPlayers = [...selectedPlayers, player];
+  roundSettings = {
+    ...roundSettings,
+    players: [...selectedPlayers],
+    selectedPlayerIds: Array.from(new Set([
+      ...(roundSettings.selectedPlayerIds || []),
+      ...selectedPlayers.map((item) => item.id)
+    ])),
+    groups: roundSettings.groups.map((group, index) =>
+      index === groupIndex ? [...group, player.id] : [...group]
+    ),
+    groupRecords: (roundSettings.groupRecords || []).map((record, index) => ({
+      ...record,
+      playerIds: index === groupIndex
+        ? Array.from(new Set([...(record.playerIds || roundSettings.groups[index] || []), player.id]))
+        : [...(record.playerIds || roundSettings.groups[index] || [])],
+      startingHole: Number(record.startingHole || 1),
+      currentHole: Number(record.currentHole || record.startingHole || 1),
+      holesToPlay: Number(record.holesToPlay || roundState.totalHoles),
+      completedHoleNumbers: [...(record.completedHoleNumbers || [])],
+      status: record.status || "in_progress"
+    }))
+  };
+  roundSettings.games = {
+    ...roundSettings.games,
+    netSkins: {
+      ...(roundSettings.games?.netSkins || {}),
+      enabled: selectedPlayers.some((item) => item.inSkins === true)
+    },
+    pointsGame: {
+      ...(roundSettings.games?.pointsGame || {}),
+      enabled: selectedPlayers.some((item) => item.inPoints === true)
+    }
+  };
+  roundSettings.groupRecords[groupIndex] = {
+    ...getGroupRecord(groupIndex),
+    playerIds: roundSettings.groups[groupIndex]
+  };
+
+  const nextSavedRound = {
+    ...preservedRound,
+    players: selectedPlayers,
+    roundSettings,
+    groupHoleIndexes: [...groupHoleIndexes],
+    currentGroupIndex: previousGroupIndex
+  };
+
+  roundState = createRoundState(selectedCourse, selectedPlayers, roundSettings, nextSavedRound);
+  currentGroupIndex = previousGroupIndex;
+  syncRoundStateToCurrentGroup();
+
+  const groupRecord = getGroupRecord(groupIndex);
+  const groupId = groupRecord.cloudId || groupRecord.id || `${roundState.id}-group-${groupIndex + 1}`;
+  const rowResult = await roundCloudService.upsertRoundPlayer({
+    round_id: roundState.id,
+    player_id: player.id,
+    tee: player.tee,
+    handicap_index: player.handicapIndex,
+    course_handicap: player.courseHandicap,
+    group_id: groupId,
+    playing: true,
+    skins_enabled: player.inSkins === true,
+    points_enabled: player.inPoints === true
+  });
+  const savedRound = await autoSaveUnfinishedRound();
+
+  elements.saveLatePlayer.disabled = false;
+
+  if (!rowResult.ok) {
+    elements.latePlayerStatus.textContent = rowResult.message || "Player added locally. Cloud round-player save failed.";
+  } else if (!savedRound?.cloudUpdatedAt) {
+    elements.latePlayerStatus.textContent = "Player added on this device. Cloud active-round save did not confirm.";
+  } else {
+    elements.latePlayerStatus.textContent = `${player.name} added to Group ${groupIndex + 1}.`;
+  }
+
+  renderCommissionerGroupSelection();
 }
 
 async function showCommissionerGroupSelection({ refresh = true } = {}) {
@@ -1129,10 +1322,19 @@ function getGroupCompletedHoleNumbersFromScores(groupIndex) {
 
   return sequence.filter((holeNumber) =>
     activePlayers.every((player) => {
+      if (!isHoleRequiredForPlayer(player, holeNumber, sequence)) return true;
       const score = roundState.savedScores[player.id]?.[holeNumber - 1];
       return Number.isFinite(Number(score)) && Number(score) > 0;
     })
   );
+}
+
+function isHoleRequiredForPlayer(player, holeNumber, sequence) {
+  const lateJoinHole = Number(player.lateJoinHole || player.late_join_hole || 0);
+
+  if (!lateJoinHole || !sequence.includes(lateJoinHole)) return true;
+
+  return sequence.indexOf(holeNumber) >= sequence.indexOf(lateJoinHole);
 }
 
 function syncGroupCompletionFromScores(groupIndex) {
@@ -1686,6 +1888,7 @@ function isGroupComplete(groupIndex) {
     .filter((player) => !roundState.isPlayerDnf(player))
     .every((player) =>
       sequence.every((holeNumber) => {
+        if (!isHoleRequiredForPlayer(player, holeNumber, sequence)) return true;
         const score = roundState.savedScores[player.id]?.[holeNumber - 1];
         return Number.isFinite(Number(score)) && Number(score) > 0;
       })
@@ -3518,6 +3721,12 @@ elements.scoreOverrideList.addEventListener("click", (event) => {
 });
 
 elements.commissionerGroupSelectionList.addEventListener("click", (event) => {
+  const addPlayerButton = event.target.closest("[data-add-active-player]");
+  if (addPlayerButton) {
+    openLatePlayerForm();
+    return;
+  }
+
   const groupButton = event.target.closest("[data-commissioner-group-index]");
 
   if (!groupButton) return;
@@ -3527,6 +3736,8 @@ elements.commissionerGroupSelectionList.addEventListener("click", (event) => {
 
 elements.commissionerGroupSelectionLeaderboard.addEventListener("click", showLeaderboardPage);
 elements.commissionerGroupSelectionDashboard.addEventListener("click", showTodayRoundScreen);
+elements.cancelLatePlayer.addEventListener("click", closeLatePlayerForm);
+elements.saveLatePlayer.addEventListener("click", saveLatePlayer);
 elements.exitScoreOverride.addEventListener("click", exitScoreOverride);
 
 elements.holeSelector.addEventListener("change", () => {

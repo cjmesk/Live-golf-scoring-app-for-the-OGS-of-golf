@@ -1077,6 +1077,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
         inPoints: isInPoints(player),
         inTeamChallenge: player.inTeamChallenge === true,
         teamId: player.teamId || "",
+        lateJoinHole: player.lateJoinHole || null,
         courseHandicap: courseHandicaps[player.id],
         dnf: getPlayerDnfStatus(player)
       })),
@@ -1221,6 +1222,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
         inPoints: isInPoints(player),
         inTeamChallenge: player.inTeamChallenge === true,
         teamId: player.teamId || "",
+        lateJoinHole: player.lateJoinHole || null,
         courseHandicap: courseHandicaps[player.id],
         dnf: getPlayerDnfStatus(player)
       })),

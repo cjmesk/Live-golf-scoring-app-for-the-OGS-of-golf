@@ -1061,7 +1061,7 @@ body.is-scoring .current-hole-status {
 .player-scorecard-table,
 .player-scorecard-summary-table {
   width: 100%;
-  min-width: 430px;
+  min-width: 440px;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 0.76rem;
@@ -1101,6 +1101,13 @@ body.is-scoring .current-hole-status {
   font-weight: 900;
 }
 
+.player-scorecard-total-heading,
+.player-scorecard-total-cell {
+  color: var(--green-dark);
+  background: #f4f8f4;
+  font-weight: 900;
+}
+
 .score-result-badge {
   display: inline-grid;
   place-items: center;
@@ -1117,21 +1124,23 @@ body.is-scoring .current-hole-status {
 
 .score-result-birdie {
   border: 1px solid #b3261e;
+  border-radius: 999px;
   color: #8f1d18;
   background: #fff3f2;
 }
 
 .score-result-bogey {
+  border: 2px solid var(--ink);
   border-radius: 4px;
-  color: white;
-  background: var(--blue);
+  color: var(--ink);
+  background: transparent;
 }
 
 .score-result-double {
-  border: 2px solid var(--blue);
+  border: 2px solid var(--ink);
   border-radius: 4px;
-  color: var(--blue);
-  background: #eef4fb;
+  color: var(--ink);
+  background: transparent;
 }
 
 .score-result-neutral {
@@ -1281,6 +1290,30 @@ body.is-scoring .current-hole-status {
 .score-override-row.is-active {
   border-color: var(--green-dark);
   background: #eef5ef;
+}
+
+.add-active-player-button {
+  justify-self: stretch;
+  margin: -2px 0 8px;
+}
+
+.late-player-panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.late-player-panel h3 {
+  margin: 0;
+  color: var(--green-dark);
+  font-size: 1rem;
+}
+
+.late-player-panel .toggle-line {
+  justify-content: flex-start;
 }
 
 .secondary-button {
@@ -1864,8 +1897,8 @@ body.is-scoring .current-hole-status {
 
   .player-scorecard-table,
   .player-scorecard-summary-table {
-    min-width: 390px;
-    font-size: 0.68rem;
+    min-width: 405px;
+    font-size: 0.66rem;
   }
 
   .player-scorecard-summary-table {
@@ -1885,8 +1918,8 @@ body.is-scoring .current-hole-status {
   }
 
   .score-result-badge {
-    min-width: 20px;
-    min-height: 20px;
+    min-width: 18px;
+    min-height: 18px;
   }
 
   .skin-badge {

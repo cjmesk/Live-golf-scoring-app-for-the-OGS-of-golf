@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OG&apos;s Golf</title>
-  <link rel="stylesheet" href="src/styles/main.css?v=20260731-scorecard-dots">
+  <link rel="stylesheet" href="src/styles/main.css?v=20260803-scorecard-totals">
 </head>
 <body>
   <header class="app-header">
@@ -243,6 +243,28 @@
         </div>
         <p class="player-details">Open scoring for any active group or review a group that has already finished.</p>
         <div id="commissionerGroupSelectionList" class="score-override-list"></div>
+        <div id="latePlayerPanel" class="late-player-panel is-hidden">
+          <h3>Add Player to Active Round</h3>
+          <label class="field-label" for="latePlayerSelect">Player</label>
+          <select id="latePlayerSelect" class="field-control"></select>
+          <label class="field-label" for="latePlayerGroupSelect">Group</label>
+          <select id="latePlayerGroupSelect" class="field-control"></select>
+          <label class="field-label" for="latePlayerTeeSelect">Tee</label>
+          <select id="latePlayerTeeSelect" class="field-control"></select>
+          <label class="toggle-line">
+            <input id="latePlayerSkins" type="checkbox">
+            Skins
+          </label>
+          <label class="toggle-line">
+            <input id="latePlayerPoints" type="checkbox">
+            Points
+          </label>
+          <div class="dnf-confirm-actions">
+            <button id="cancelLatePlayer" type="button" class="secondary-button">Cancel</button>
+            <button id="saveLatePlayer" type="button" class="save-button">Add Player</button>
+          </div>
+          <p id="latePlayerStatus" class="cloud-save-status"></p>
+        </div>
         <div class="completed-group-actions">
           <button id="commissionerGroupSelectionLeaderboard" type="button" class="secondary-button">View Leaderboard</button>
           <button id="commissionerGroupSelectionDashboard" type="button" class="secondary-button">Commissioner Dashboard</button>
@@ -563,13 +585,13 @@
         </div>
       </div>
       <div class="setup-panel">
-        <strong>OG&apos;s Golf v0.9.8 Beta</strong>
+        <strong>OG&apos;s Golf v0.9.10 Late Player Beta</strong>
         <span class="player-details">Built for simple league scoring, shared leaderboards, points, skins, and team event setup.</span>
       </div>
     </section>
   </main>
 
-  <footer class="app-footer">OGS Golf v0.9.8 Beta</footer>
+  <footer class="app-footer">OGS Golf v0.9.10 Late Player Beta</footer>
 
   <script src="src/data/course.js?v=20260731-park-mammoth"></script>
   <script src="src/data/players.js?v=20260709-v098-menu"></script>
@@ -578,13 +600,13 @@
   <script src="src/rules/skins.js?v=20260709-v098-menu"></script>
   <script src="src/state/playerStorage.js?v=20260709-v098-menu"></script>
   <script src="src/state/scorerStorage.js?v=20260711-device-scorer"></script>
-  <script src="src/state/roundState.js?v=20260801-change-tee"></script>
+  <script src="src/state/roundState.js?v=20260803-late-player-form"></script>
   <script src="src/state/roundStorage.js?v=20260709-v098-menu"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/roundCloudService.js?v=20260728-handicap-adjust"></script>
-  <script src="src/ui/dom.js?v=20260801-change-tee"></script>
+  <script src="src/ui/dom.js?v=20260803-late-player-form"></script>
   <script src="src/ui/formatters.js?v=20260710-index-course-handicap"></script>
   <script src="src/ui/setupView.js?v=20260731-park-mammoth"></script>
   <script src="src/ui/holeView.js?v=20260801-change-tee"></script>
@@ -592,11 +614,11 @@
   <script src="src/ui/pointsPayoutView.js?v=20260710-points-quota"></script>
   <script src="src/ui/skinsView.js?v=20260709-v098-menu"></script>
   <script src="src/ui/finalSummaryView.js?v=20260728-player-scorecard"></script>
-  <script src="src/ui/playerScorecardView.js?v=20260731-scorecard-dots"></script>
+  <script src="src/ui/playerScorecardView.js?v=20260803-scorecard-totals"></script>
   <script src="src/ui/previousRoundsView.js?v=20260728-completed-nav"></script>
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
   <script src="src/ui/groupSetupView.js?v=20260710-flex-hole-order"></script>
   <script src="src/ui/eventSummaryView.js?v=20260710-round-setup"></script>
-  <script src="src/app.js?v=20260801-change-tee"></script>
+  <script src="src/app.js?v=20260803-late-player-form"></script>
 </body>
 </html>
