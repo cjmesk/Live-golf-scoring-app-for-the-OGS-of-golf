@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OG&apos;s Golf</title>
-  <link rel="stylesheet" href="src/styles/main.css?v=20260803-scorecard-totals">
+  <link rel="stylesheet" href="src/styles/main.css?v=20260805-finish-early">
 </head>
 <body>
   <header class="app-header">
@@ -15,6 +15,28 @@
     </div>
     <button id="resetScores" type="button" class="reset-button admin-only">Reset</button>
   </header>
+
+  <div id="resetRoundConfirm" class="reset-confirm-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="resetRoundConfirmTitle">
+    <div class="reset-confirm-card">
+      <h2 id="resetRoundConfirmTitle">Reset current round?</h2>
+      <p>This will erase all scores and round progress. This cannot be undone.</p>
+      <div class="reset-confirm-actions">
+        <button id="cancelResetRound" type="button" class="secondary-button">Cancel</button>
+        <button id="confirmResetRound" type="button" class="reset-button">Yes, Reset Round</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="finishRoundEarlyConfirm" class="reset-confirm-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="finishRoundEarlyTitle">
+    <div class="reset-confirm-card">
+      <h2 id="finishRoundEarlyTitle">Finish this round now?</h2>
+      <p>Results will use only the holes that have been completed. Unplayed holes will remain blank.</p>
+      <div class="reset-confirm-actions">
+        <button id="cancelFinishRoundEarly" type="button" class="secondary-button">Cancel</button>
+        <button id="confirmFinishRoundEarly" type="button" class="save-button">Yes, Finish Round</button>
+      </div>
+    </div>
+  </div>
 
   <nav id="appMenu" class="app-menu is-hidden" aria-label="Main menu">
     <label id="menuCommissionerPinLabel" class="menu-pin-label" for="menuCommissionerPin">
@@ -352,6 +374,7 @@
       <div class="action-row">
         <button id="previousHole" type="button" class="secondary-button">Previous Hole</button>
         <button id="saveHole" type="button" class="save-button">Save Hole</button>
+        <button id="finishRoundEarly" type="button" class="secondary-button">Finish Round Early</button>
         <button id="nextHole" type="button" class="secondary-button">Next Hole</button>
         <button id="undoLastHole" type="button" class="secondary-button">Undo Last Hole</button>
       </div>
@@ -606,7 +629,7 @@
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/roundCloudService.js?v=20260728-handicap-adjust"></script>
-  <script src="src/ui/dom.js?v=20260803-late-player-form"></script>
+  <script src="src/ui/dom.js?v=20260805-finish-early"></script>
   <script src="src/ui/formatters.js?v=20260710-index-course-handicap"></script>
   <script src="src/ui/setupView.js?v=20260731-park-mammoth"></script>
   <script src="src/ui/holeView.js?v=20260801-change-tee"></script>
@@ -617,8 +640,8 @@
   <script src="src/ui/playerScorecardView.js?v=20260803-scorecard-totals"></script>
   <script src="src/ui/previousRoundsView.js?v=20260728-completed-nav"></script>
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
-  <script src="src/ui/groupSetupView.js?v=20260710-flex-hole-order"></script>
+  <script src="src/ui/groupSetupView.js?v=20260805-always-18-setup"></script>
   <script src="src/ui/eventSummaryView.js?v=20260710-round-setup"></script>
-  <script src="src/app.js?v=20260803-late-player-form"></script>
+  <script src="src/app.js?v=20260805-finish-early"></script>
 </body>
 </html>

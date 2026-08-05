@@ -170,6 +170,52 @@ body.is-scoring h1 {
   background: transparent;
 }
 
+.reset-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(20, 30, 24, 0.55);
+}
+
+.reset-confirm-card {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 420px);
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+}
+
+.reset-confirm-card h2 {
+  margin: 0;
+  color: var(--green-dark);
+  font-size: 1.25rem;
+}
+
+.reset-confirm-card p {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.reset-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.reset-confirm-actions .reset-button {
+  border-color: #8f1d18;
+  color: white;
+  background: #8f1d18;
+}
+
 .setup-section,
 .today-section,
 .group-setup-section,

@@ -78,7 +78,6 @@ window.OGSGolf.ui.renderGroupScorerOptions = function renderGroupScorerOptions(e
       const groupPlayers = players.filter((player) => group.includes(player.id));
       const previousScorer = elements.groupScorerList.querySelector(`[data-group-scorer="${index}"]`)?.value;
       const previousStartingHole = elements.groupScorerList.querySelector(`[data-group-starting-hole="${index}"]`)?.value || "1";
-      const previousHolesToPlay = elements.groupScorerList.querySelector(`[data-group-holes-to-play="${index}"]`)?.value || "18";
       const selectedScorer = group.includes(previousScorer) ? previousScorer : group[0];
       const scorerOptions = groupPlayers
         .map((player) => `<option value="${player.id}"${player.id === selectedScorer ? " selected" : ""}>${player.name}</option>`)
@@ -91,7 +90,7 @@ window.OGSGolf.ui.renderGroupScorerOptions = function renderGroupScorerOptions(e
         <div class="member-row">
           <div>
             <strong>Group ${index + 1} Scorekeeper</strong>
-            <span class="player-details">Set the scorekeeper, starting hole, and round length for this group.</span>
+            <span class="player-details">Set the scorekeeper and starting hole for this group. New rounds are scheduled for 18 holes.</span>
           </div>
           <label class="tee-select-label">
             <span>Scorekeeper</span>
@@ -103,13 +102,6 @@ window.OGSGolf.ui.renderGroupScorerOptions = function renderGroupScorerOptions(e
             <span>Starting Hole</span>
             <select class="field-control" data-group-starting-hole="${index}">
               ${holeOptions}
-            </select>
-          </label>
-          <label class="tee-select-label">
-            <span>Holes to Play</span>
-            <select class="field-control" data-group-holes-to-play="${index}">
-              <option value="18"${previousHolesToPlay === "18" ? " selected" : ""}>18 holes</option>
-              <option value="9"${previousHolesToPlay === "9" ? " selected" : ""}>9 holes</option>
             </select>
           </label>
         </div>
@@ -141,11 +133,10 @@ window.OGSGolf.ui.readGroupScorers = function readGroupScorers(elements, groups)
 window.OGSGolf.ui.readGroupPlaySettings = function readGroupPlaySettings(elements, groups) {
   return groups.map((group, index) => {
     const startingHoleSelect = elements.groupScorerList.querySelector(`[data-group-starting-hole="${index}"]`);
-    const holesToPlaySelect = elements.groupScorerList.querySelector(`[data-group-holes-to-play="${index}"]`);
 
     return {
       startingHole: Number(startingHoleSelect?.value || 1),
-      holesToPlay: Number(holesToPlaySelect?.value || 18)
+      holesToPlay: 18
     };
   });
 };

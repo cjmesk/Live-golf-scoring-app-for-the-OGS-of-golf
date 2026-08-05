@@ -1198,6 +1198,8 @@ function renderHoleStatus() {
   elements.roundScreen.classList.toggle("is-group-complete", groupComplete);
   elements.saveHole.classList.toggle("is-hidden", groupComplete);
   elements.saveHole.disabled = !canEdit || groupComplete;
+  elements.finishRoundEarly.classList.toggle("is-hidden", groupComplete);
+  elements.finishRoundEarly.disabled = !canEdit || groupComplete;
   elements.previousHole.disabled = !canEdit;
   elements.nextHole.classList.add("is-hidden");
   elements.undoLastHole.classList.add("is-hidden");
@@ -1252,6 +1254,13 @@ function buildHoleSequence(startingHole = 1, holesToPlay = 18) {
   );
 }
 
+function orderHoleNumbersForGroup(record, holeNumbers = []) {
+  const sequence = buildHoleSequence(record?.startingHole || 1, record?.holesToPlay || 18);
+  const uniqueHoles = new Set((holeNumbers || []).map(Number));
+
+  return sequence.filter((holeNumber) => uniqueHoles.has(holeNumber));
+}
+
 function getGroupRecord(groupIndex = currentGroupIndex) {
   if (!roundSettings) return null;
 
@@ -1276,7 +1285,7 @@ function getGroupRecord(groupIndex = currentGroupIndex) {
   record.startingHole = Number(record.startingHole || 1);
   record.currentHole = Number(record.currentHole || record.startingHole || 1);
   record.holesToPlay = Number(record.holesToPlay || roundState?.totalHoles || 18);
-  record.completedHoleNumbers = Array.from(new Set((record.completedHoleNumbers || []).map(Number))).sort((a, b) => a - b);
+  record.completedHoleNumbers = orderHoleNumbersForGroup(record, record.completedHoleNumbers || []);
   record.status = record.completedHoleNumbers.length >= record.holesToPlay ? "completed" : (record.status || "in_progress");
 
   return record;
@@ -1304,13 +1313,25 @@ function markGroupHoleComplete(groupIndex, holeNumber) {
 
   if (!sequence.includes(holeNumber)) return;
 
-  record.completedHoleNumbers = Array.from(new Set([
+  record.completedHoleNumbers = orderHoleNumbersForGroup(record, [
     ...(record.completedHoleNumbers || []),
     holeNumber
-  ])).sort((a, b) => a - b);
+  ]);
   record.status = record.completedHoleNumbers.length >= record.holesToPlay
     ? "completed"
     : "in_progress";
+}
+
+function finishGroupEarly(groupIndex = currentGroupIndex) {
+  const record = getGroupRecord(groupIndex);
+  const completedFromScores = getGroupCompletedHoleNumbersFromScores(groupIndex);
+
+  record.completedHoleNumbers = completedFromScores;
+  record.earlyFinished = true;
+  record.earlyFinishedAt = new Date().toISOString();
+  record.status = "completed";
+
+  return record;
 }
 
 function getGroupCompletedHoleNumbersFromScores(groupIndex) {
@@ -1342,6 +1363,11 @@ function syncGroupCompletionFromScores(groupIndex) {
   const completedFromScores = getGroupCompletedHoleNumbersFromScores(groupIndex);
 
   record.completedHoleNumbers = completedFromScores;
+
+  if (record.earlyFinished === true) {
+    record.status = "completed";
+    return record;
+  }
 
   record.status = record.completedHoleNumbers.length >= record.holesToPlay
     ? "completed"
@@ -1378,27 +1404,30 @@ function applyCloudGroupsToRoundSettings(groups = []) {
 function getGroupGrossRows(groupIndex = currentGroupIndex) {
   const record = getGroupRecord(groupIndex);
   const sequence = getGroupHoleSequence(groupIndex);
-  const isNineHoleRound = Number(record.holesToPlay) === 9;
-  const nineLabel = sequence.every((holeNumber) => holeNumber <= 9)
+  const grossHoleNumbers = record.earlyFinished === true && record.completedHoleNumbers.length
+    ? record.completedHoleNumbers
+    : sequence;
+  const isNineHoleRound = grossHoleNumbers.length <= 9;
+  const nineLabel = grossHoleNumbers.every((holeNumber) => holeNumber <= 9)
     ? "Front"
-    : sequence.every((holeNumber) => holeNumber >= 10)
+    : grossHoleNumbers.every((holeNumber) => holeNumber >= 10)
       ? "Back"
       : "Nine";
 
   return getGroupPlayers(groupIndex).map((player) => {
-    const front = sequence
+    const front = grossHoleNumbers
       .filter((holeNumber) => holeNumber <= 9)
       .reduce((total, holeNumber) => total + Number(roundState.savedScores[player.id][holeNumber - 1] || 0), 0);
-    const back = sequence
+    const back = grossHoleNumbers
       .filter((holeNumber) => holeNumber >= 10)
       .reduce((total, holeNumber) => total + Number(roundState.savedScores[player.id][holeNumber - 1] || 0), 0);
-    const gross = sequence.reduce((total, holeNumber) =>
+    const gross = grossHoleNumbers.reduce((total, holeNumber) =>
       total + Number(roundState.savedScores[player.id][holeNumber - 1] || 0), 0
     );
 
     return {
       player,
-      holes: sequence.length,
+      holes: grossHoleNumbers.length,
       front,
       back,
       gross,
@@ -1879,10 +1908,32 @@ function getNextUncompletedHole(groupIndex) {
   return getGroupHoleSequence(groupIndex).find((holeNumber) => !completed.has(holeNumber)) || null;
 }
 
+function getNextUncompletedHoleAfter(groupIndex, savedHoleNumber) {
+  const record = getGroupRecord(groupIndex);
+  const sequence = getGroupHoleSequence(groupIndex);
+  const completed = new Set(record.completedHoleNumbers || []);
+  const savedSequenceIndex = sequence.indexOf(Number(savedHoleNumber));
+
+  if (record.completedHoleNumbers.length >= record.holesToPlay) return null;
+  if (savedSequenceIndex < 0) return getNextUncompletedHole(groupIndex);
+
+  for (let offset = 1; offset <= sequence.length; offset += 1) {
+    const candidate = sequence[(savedSequenceIndex + offset) % sequence.length];
+    if (!completed.has(candidate)) return candidate;
+  }
+
+  return null;
+}
+
 function isGroupComplete(groupIndex) {
   if (!roundState || !roundSettings?.groups?.[groupIndex]) return false;
 
   const record = syncGroupCompletionFromScores(groupIndex);
+
+  if (record.earlyFinished === true && record.status === "completed") {
+    return true;
+  }
+
   const sequence = getGroupHoleSequence(groupIndex);
   const activePlayersHaveScores = getGroupPlayers(groupIndex)
     .filter((player) => !roundState.isPlayerDnf(player))
@@ -1950,6 +2001,44 @@ function syncRoundStateToCurrentGroup() {
 
   const record = getGroupRecord(currentGroupIndex);
   roundState.goToHole(Math.max(0, Number(record.currentHole || 1) - 1));
+}
+
+function syncGroupProgressBeforeExport() {
+  if (!roundSettings?.groupRecords?.length) return;
+
+  roundSettings.groupRecords.forEach((record, index) => {
+    const currentHoleIndex = groupHoleIndexes[index];
+
+    if (Number.isFinite(Number(currentHoleIndex))) {
+      record.currentHole = Number(currentHoleIndex) + 1;
+    }
+
+    record.completedHoleNumbers = orderHoleNumbersForGroup(record, record.completedHoleNumbers || []);
+  });
+}
+
+function getActiveRoundAutoSaveExport() {
+  if (!roundState) return null;
+
+  syncGroupProgressBeforeExport();
+
+  const autoSaveData = roundState.getAutoSaveExport();
+  autoSaveData.groupHoleIndexes = [...groupHoleIndexes];
+  autoSaveData.currentGroupIndex = currentGroupIndex;
+  autoSaveData.currentHoleIndex = Math.min(
+    groupHoleIndexes[currentGroupIndex] ?? roundState.currentHoleIndex,
+    roundState.totalHoles - 1
+  );
+  autoSaveData.currentHole = autoSaveData.currentHoleIndex + 1;
+  autoSaveData.roundSettings = {
+    ...(autoSaveData.roundSettings || roundSettings || {}),
+    groupRecords: (roundSettings?.groupRecords || []).map((record) => ({
+      ...record,
+      completedHoleNumbers: [...(record.completedHoleNumbers || [])]
+    }))
+  };
+
+  return autoSaveData;
 }
 
 function goToGroup(nextGroupIndex) {
@@ -2548,14 +2637,7 @@ function mergeActiveRound(localRound, cloudRound, savedGroupIndex, savedHoleInde
 async function autoSaveUnfinishedRound(savedGroupIndex, savedHoleIndex) {
   if (!roundState || completedRoundSaved) return;
 
-  const autoSaveData = roundState.getAutoSaveExport();
-  autoSaveData.groupHoleIndexes = groupHoleIndexes;
-  autoSaveData.currentGroupIndex = currentGroupIndex;
-  autoSaveData.currentHoleIndex = Math.min(
-    groupHoleIndexes[currentGroupIndex] ?? roundState.currentHoleIndex,
-    roundState.totalHoles - 1
-  );
-  autoSaveData.currentHole = autoSaveData.currentHoleIndex + 1;
+  const autoSaveData = getActiveRoundAutoSaveExport();
   const cloudResult = await roundCloudService.loadActiveRound();
   const mergedData = mergeActiveRound(autoSaveData, cloudResult.round, savedGroupIndex, savedHoleIndex);
   roundStorage.saveUnfinished(mergedData);
@@ -3249,6 +3331,7 @@ async function beginGroupedRound() {
   groupHoleIndexes = roundSettings.groups.map((group, index) =>
     Math.max(0, (getGroupRecord(index).currentHole || 1) - 1)
   );
+  syncRoundStateToCurrentGroup();
   completedRoundSaved = false;
   roundStorage.clearUnfinished();
 
@@ -3315,7 +3398,7 @@ async function applyCloudScoreStateForActiveRound(roundId) {
   roundState.applyCloudPlayerStatuses(statusesResult.statuses);
   syncAllGroupCompletionsFromScores();
   syncRoundStateToCurrentGroup();
-  roundStorage.saveUnfinished(roundState.getAutoSaveExport());
+  roundStorage.saveUnfinished(getActiveRoundAutoSaveExport());
 
   return {
     ok: true,
@@ -3350,7 +3433,7 @@ async function loadActiveRoundFromCloudFirst() {
   const scoreResult = await applyCloudScoreStateForActiveRound(roundState.id);
 
   if (!scoreResult.ok) {
-    roundStorage.saveUnfinished(roundState.getAutoSaveExport());
+    roundStorage.saveUnfinished(getActiveRoundAutoSaveExport());
     renderActiveRoundDiagnostics({ loadedFrom: "cloud active round, score refresh pending" });
     return {
       ok: true,
@@ -3360,7 +3443,7 @@ async function loadActiveRoundFromCloudFirst() {
     };
   }
 
-  roundStorage.saveUnfinished(roundState.getAutoSaveExport());
+  roundStorage.saveUnfinished(getActiveRoundAutoSaveExport());
   renderActiveRoundDiagnostics({ loadedFrom: "cloud active round" });
   return { ok: true, round: cloudResult.round, scoreRefreshOk: true };
 }
@@ -3787,7 +3870,7 @@ elements.saveHole.addEventListener("click", async () => {
 
   roundState.applyCloudHoleScores(cloudSaveResult.scores);
   markGroupHoleComplete(savedGroupIndex, savedHoleNumber);
-  const nextHoleNumber = getNextUncompletedHole(savedGroupIndex);
+  const nextHoleNumber = getNextUncompletedHoleAfter(savedGroupIndex, savedHoleNumber);
 
   if (nextHoleNumber === null) {
     getGroupRecord(savedGroupIndex).status = "completed";
@@ -3803,14 +3886,7 @@ elements.saveHole.addEventListener("click", async () => {
   try {
     mergedRound = await autoSaveUnfinishedRound(savedGroupIndex, savedHoleIndex);
   } catch (error) {
-    const localSave = roundState.getAutoSaveExport();
-    localSave.groupHoleIndexes = groupHoleIndexes;
-    localSave.currentGroupIndex = currentGroupIndex;
-    localSave.currentHoleIndex = Math.min(
-      groupHoleIndexes[currentGroupIndex] ?? roundState.currentHoleIndex,
-      roundState.totalHoles - 1
-    );
-    localSave.currentHole = localSave.currentHoleIndex + 1;
+    const localSave = getActiveRoundAutoSaveExport();
     roundStorage.saveUnfinished(localSave);
     elements.saveStatusMessage.textContent = "Saved on this device. Cloud backup did not finish.";
   }
@@ -3848,13 +3924,51 @@ elements.saveHole.addEventListener("click", async () => {
   scrollToScoring();
 });
 
-elements.resetScores.addEventListener("click", async () => {
+function openResetRoundConfirm() {
   if (!commissionerMode) {
     renderScorerSelection();
     elements.scorerAccessStatus.textContent = "Only the commissioner can cancel the active event.";
     return;
   }
 
+  elements.resetRoundConfirm.classList.remove("is-hidden");
+}
+
+function closeResetRoundConfirm() {
+  elements.resetRoundConfirm.classList.add("is-hidden");
+}
+
+function openFinishRoundEarlyConfirm() {
+  if (!canEditCurrentGroup()) return;
+
+  const completedHoles = getGroupCompletedHoleNumbersFromScores(currentGroupIndex);
+  if (completedHoles.length === 0) {
+    elements.saveStatusMessage.textContent = "Save at least one hole before finishing early.";
+    return;
+  }
+
+  elements.finishRoundEarlyConfirm.classList.remove("is-hidden");
+}
+
+function closeFinishRoundEarlyConfirm() {
+  elements.finishRoundEarlyConfirm.classList.add("is-hidden");
+}
+
+async function confirmFinishRoundEarly() {
+  closeFinishRoundEarlyConfirm();
+  finishGroupEarly(currentGroupIndex);
+  syncRoundStateToCurrentGroup();
+  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex);
+  renderApp();
+
+  const fullRoundCompleted = await completeFullRoundIfReady("finish-round-early");
+  if (!fullRoundCompleted) {
+    elements.completedGroupStatus.textContent = "This group has finished early. Waiting for the remaining groups to finish.";
+  }
+}
+
+async function confirmResetCurrentRound() {
+  closeResetRoundConfirm();
   const resetResult = await clearRoundCacheForReset();
   renderSetupView(elements, courses, members);
   setActiveScreen("setup");
@@ -3863,7 +3977,14 @@ elements.resetScores.addEventListener("click", async () => {
     : "Commissioner View: reset failed.";
   renderActiveRoundDiagnostics({ loadedFrom: "device reset" });
   scrollToTop();
-});
+}
+
+elements.resetScores.addEventListener("click", openResetRoundConfirm);
+elements.cancelResetRound.addEventListener("click", closeResetRoundConfirm);
+elements.confirmResetRound.addEventListener("click", confirmResetCurrentRound);
+elements.finishRoundEarly.addEventListener("click", openFinishRoundEarlyConfirm);
+elements.cancelFinishRoundEarly.addEventListener("click", closeFinishRoundEarlyConfirm);
+elements.confirmFinishRoundEarly.addEventListener("click", confirmFinishRoundEarly);
 
 elements.reviewScorecard.addEventListener("click", reviewScorecard);
 elements.viewFinalLeaderboard.addEventListener("click", () => {
