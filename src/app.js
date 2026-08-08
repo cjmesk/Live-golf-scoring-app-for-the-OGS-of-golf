@@ -223,26 +223,65 @@ function formatTodayDate() {
   });
 }
 
+function wasCompletedToday(round) {
+  if (!round?.completed) return false;
+  const completedTime = getCompletedRoundTime(round);
+  if (!Number.isFinite(completedTime) || completedTime <= 0) return false;
+  return new Date(completedTime).toDateString() === new Date().toDateString();
+}
+
+function getTodayCompletedRound() {
+  const candidates = sortCompletedRounds([
+    ...completedRoundsCache,
+    ...getLocalCompletedRounds()
+  ]);
+  const uniqueRounds = candidates.filter((round, index, rounds) =>
+    rounds.findIndex((item) => item.id === round.id) === index
+  );
+  return uniqueRounds.find(wasCompletedToday) || null;
+}
+
 function renderTodayRoundScreen() {
-  const eventCourseName = roundSettings?.course?.name || selectedCourse?.name || "Twelve Stones Golf Club";
-  const playerCount = selectedPlayers.length || roundSettings?.players?.length || 0;
-  const groupCount = roundSettings?.groups?.length || 0;
-  const startTime = roundSettings?.startTime || roundSettings?.teeTime || "Not set";
-  const hasActiveRound = Boolean(roundState);
+  const roundIsComplete = Boolean(roundState?.isRoundComplete?.() || roundState?.completed);
+  const hasActiveRound = Boolean(roundState && !roundIsComplete);
+  const completedRound = getTodayCompletedRound();
+  const displayRound = hasActiveRound ? null : completedRound;
+  const displaySettings = hasActiveRound ? roundSettings : displayRound?.roundSettings;
+  const eventCourseName = displaySettings?.course?.name
+    || displayRound?.course?.name
+    || selectedCourse?.name
+    || "Twelve Stones Golf Club";
+  const playerCount = hasActiveRound
+    ? (selectedPlayers.length || roundSettings?.players?.length || 0)
+    : (displayRound?.players?.length || 0);
+  const groupCount = hasActiveRound
+    ? (roundSettings?.groups?.length || 0)
+    : (displaySettings?.groups?.length || 0);
+  const startTime = displaySettings?.startTime || displaySettings?.teeTime || "Not set";
+
+  elements.todayTitle.textContent = hasActiveRound
+    ? "Today's Round - In Progress"
+    : completedRound
+    ? "Today's Results - Complete"
+    : "Today's Round";
 
   elements.todayDate.textContent = formatTodayDate();
   elements.todayCourseName.textContent = eventCourseName;
-  elements.todayEventStatus.textContent = hasActiveRound
-    ? roundSettings?.eventStatus || "Open"
-    : "No active round yet";
+  elements.todayEventStatus.textContent = hasActiveRound ? "In Progress" : completedRound ? "Complete" : "Not Started";
   elements.todayPlayerCount.textContent = String(playerCount);
   elements.todayStartTime.textContent = startTime;
   elements.todayGroupCount.textContent = String(groupCount);
-  elements.viewLiveMatch.disabled = !hasActiveRound;
+  elements.viewLiveMatch.classList.toggle("is-hidden", !hasActiveRound && !completedRound);
+  elements.viewLiveMatch.textContent = completedRound ? "View Today's Results" : "View Live Leaderboard";
+  elements.viewLiveMatch.disabled = !hasActiveRound && !completedRound;
+  elements.choosePlayerScoring.classList.toggle("is-hidden", !hasActiveRound);
+  elements.choosePlayerScoring.textContent = "Enter Scores";
   elements.choosePlayerScoring.disabled = !hasActiveRound;
   elements.todayStatus.textContent = hasActiveRound
-    ? "Today's match is ready."
-    : "No active round yet.";
+    ? "Choose Enter Scores or View Live Leaderboard."
+    : completedRound
+    ? "Today's round is complete. Final results are ready."
+    : "No round has been started today.";
   updateLastRoundResultsVisibility();
 }
 
@@ -250,6 +289,25 @@ function showTodayRoundScreen() {
   renderTodayRoundScreen();
   setActiveScreen("today");
   scrollToTop();
+}
+
+function openTodayRoundPrimaryAction() {
+  const roundIsComplete = Boolean(roundState?.isRoundComplete?.() || roundState?.completed);
+  if (roundState && !roundIsComplete) {
+    viewLiveMatch();
+    return;
+  }
+
+  const completedRound = getTodayCompletedRound();
+  if (completedRound) {
+    openCompletedRoundResults(completedRound, {
+      title: "Today's Results",
+      statusMessage: "Today's completed round loaded from Round History."
+    });
+    return;
+  }
+
+  showTodayRoundScreen();
 }
 
 function getCompletedRoundTime(round) {
@@ -3776,7 +3834,7 @@ elements.confirmStartRound.addEventListener("click", beginGroupedRound);
 elements.resumeRound.addEventListener("click", resumeSavedRound);
 elements.startFreshRound.addEventListener("click", () => startFreshRound({ clearSavedRound: true }));
 elements.discardSavedRound.addEventListener("click", discardSavedRound);
-elements.viewLiveMatch.addEventListener("click", viewLiveMatch);
+elements.viewLiveMatch.addEventListener("click", openTodayRoundPrimaryAction);
 elements.choosePlayerScoring.addEventListener("click", choosePlayerOrScorer);
 elements.todayLastRoundResults.addEventListener("click", showPreviousRounds);
 elements.todayCommissionerMode.addEventListener("click", openCommissionerFromToday);
