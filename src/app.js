@@ -456,6 +456,15 @@ async function showLiveScoring() {
 }
 
 async function showLeaderboard() {
+  const activeRoundResult = await loadActiveRoundFromCloudFirst();
+
+  if (activeRoundResult.ok && roundState) {
+    summaryDisplayRoundState = null;
+    summaryReadOnlyMode = false;
+    showLeaderboardPage();
+    return;
+  }
+
   if (roundState) {
     if (!completedRoundSaved) {
       await checkCompletedRoundFromCloud({ silent: true });
