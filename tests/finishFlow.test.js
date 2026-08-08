@@ -21,8 +21,8 @@ if (!appSource.includes('elements.saveRoundCloud.classList.remove("is-hidden");'
   throw new Error("A failed automatic cloud save must expose the retry action.");
 }
 
-if (!htmlSource.includes("Latest Official Round")) {
-  throw new Error("The official-only latest-round shortcut must be labeled clearly.");
+if (!htmlSource.includes("Round History")) {
+  throw new Error("Completed rounds must link to the consolidated Round History.");
 }
 
 console.log("finish flow tests passed");

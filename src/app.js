@@ -286,9 +286,8 @@ function getLastCompletedRound() {
 }
 
 function updateLastRoundResultsVisibility() {
-  const hasLastRound = Boolean(getLastCompletedRound());
-  elements.menuLastRoundResults?.classList.toggle("is-hidden", !hasLastRound);
-  elements.todayLastRoundResults?.classList.toggle("is-hidden", !hasLastRound);
+  elements.menuLastRoundResults?.classList.remove("is-hidden");
+  elements.todayLastRoundResults?.classList.remove("is-hidden");
 }
 
 function normalizeCompletedRoundForReadOnly(savedRound) {
@@ -714,6 +713,11 @@ function turnOnCommissionerFromMenu() {
 async function handleMenuAction(action) {
   closeMenu();
 
+  if (action === "today") {
+    showTodayRoundScreen();
+    return;
+  }
+
   if (action === "setup") {
     await openSetupWizard();
     return;
@@ -734,21 +738,6 @@ async function handleMenuAction(action) {
     renderApp();
     elements.modeStatus.textContent = "Edit Round Setup is commissioner-only. Setup is locked for scorers; make beta corrections from Commissioner View.";
     scrollToScoring();
-    return;
-  }
-
-  if (action === "scoring") {
-    showLiveScoring();
-    return;
-  }
-
-  if (action === "leaderboard") {
-    await showLeaderboard();
-    return;
-  }
-
-  if (action === "lastResults") {
-    await showLastRoundResults();
     return;
   }
 
@@ -3789,7 +3778,7 @@ elements.startFreshRound.addEventListener("click", () => startFreshRound({ clear
 elements.discardSavedRound.addEventListener("click", discardSavedRound);
 elements.viewLiveMatch.addEventListener("click", viewLiveMatch);
 elements.choosePlayerScoring.addEventListener("click", choosePlayerOrScorer);
-elements.todayLastRoundResults.addEventListener("click", showLastRoundResults);
+elements.todayLastRoundResults.addEventListener("click", showPreviousRounds);
 elements.todayCommissionerMode.addEventListener("click", openCommissionerFromToday);
 elements.scorerList.addEventListener("click", (event) => {
   const leaderboardOnlyButton = event.target.closest("[data-view-leaderboard-only]");

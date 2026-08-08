@@ -44,25 +44,23 @@
       <input id="menuCommissionerPin" class="field-control" type="password" inputmode="numeric" autocomplete="off">
     </label>
     <button id="toggleCommissionerMode" type="button" class="menu-mode-button">Commissioner Mode: Off</button>
+    <button type="button" data-menu-action="today">Today's Round</button>
+    <button id="menuLastRoundResults" type="button" data-menu-action="previous">Round History</button>
+    <button type="button" data-menu-action="courseInfo">Course Information</button>
+    <button type="button" data-menu-action="help">Help</button>
+    <button type="button" data-menu-action="about">About</button>
     <button type="button" data-menu-action="setup" class="admin-only">New Round / Setup Wizard</button>
     <button type="button" data-menu-action="editSetup" class="admin-only">Edit Round Setup</button>
-    <button type="button" data-menu-action="scoring">Live Scoring</button>
-    <button type="button" data-menu-action="leaderboard">Leaderboard</button>
-    <button id="menuLastRoundResults" type="button" data-menu-action="lastResults" class="is-hidden">Latest Official Round</button>
-    <button type="button" data-menu-action="courseInfo">Course Information</button>
     <button type="button" data-menu-action="handicapVerify" class="admin-only">Course Handicap Verification</button>
     <button type="button" data-menu-action="players" class="admin-only">Player Management</button>
     <button type="button" data-menu-action="courses" class="admin-only">Course Management</button>
     <button type="button" data-menu-action="bets" class="admin-only">Bet Settings</button>
     <button type="button" data-menu-action="teams" class="admin-only">Team Event Setup</button>
-    <button type="button" data-menu-action="previous">Previous Rounds</button>
-    <button type="button" data-menu-action="help">Help</button>
-    <button type="button" data-menu-action="about">About</button>
   </nav>
 
   <main>
     <div class="top-actions is-hidden">
-      <button id="showPreviousRounds" type="button" class="secondary-button">Previous Rounds</button>
+      <button id="showPreviousRounds" type="button" class="secondary-button">Round History</button>
       <button id="showPlayerManagement" type="button" class="secondary-button admin-only">Player Management</button>
     </div>
     <div id="modeStatus" class="cloud-save-status"></div>
@@ -107,7 +105,7 @@
       <div class="today-actions">
         <button id="viewLiveMatch" type="button" class="save-button start-button">View Live Match</button>
         <button id="choosePlayerScoring" type="button" class="secondary-button">I'm Playing / Scoring</button>
-        <button id="todayLastRoundResults" type="button" class="secondary-button is-hidden">Latest Official Round</button>
+        <button id="todayLastRoundResults" type="button" class="secondary-button">Round History</button>
         <button id="todayCommissionerMode" type="button" class="secondary-button">Commissioner Mode</button>
       </div>
       <div id="todayStatus" class="cloud-save-status"></div>
@@ -500,7 +498,7 @@
       <div class="summary-actions">
         <button id="viewFinalLeaderboard" type="button" class="secondary-button">View Final Leaderboard</button>
         <button id="reviewScorecard" type="button" class="secondary-button">View Full Scorecard / All Groups</button>
-        <button id="summaryPreviousRounds" type="button" class="secondary-button">Previous Rounds</button>
+        <button id="summaryPreviousRounds" type="button" class="secondary-button">Round History</button>
         <button id="summaryReturnHome" type="button" class="secondary-button">Return to Home</button>
         <button id="summaryUndoLastHole" type="button" class="secondary-button">Undo Last Hole</button>
         <button id="saveRound" type="button" class="save-button is-hidden">Confirm Final Scores</button>
@@ -518,12 +516,12 @@
       <div class="setup-header">
         <div>
           <p class="eyebrow dark">History</p>
-          <h2 id="previousRoundsTitle">Previous Rounds</h2>
+          <h2 id="previousRoundsTitle">Round History</h2>
         </div>
       </div>
 
       <div class="previous-round-actions">
-        <button id="refreshCloudRounds" type="button" class="save-button">Refresh Cloud Rounds</button>
+        <button id="refreshCloudRounds" type="button" class="save-button">Refresh Round History</button>
         <button id="backFromPreviousRounds" type="button" class="secondary-button">Back</button>
       </div>
 
@@ -706,6 +704,6 @@
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
   <script src="src/ui/groupSetupView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/eventSummaryView.js?v=20260808-four-ball-match"></script>
-  <script src="src/app.js?v=20260808-finish-flow"></script>
+  <script src="src/app.js?v=20260808-navigation-consolidation"></script>
 </body>
 </html>
