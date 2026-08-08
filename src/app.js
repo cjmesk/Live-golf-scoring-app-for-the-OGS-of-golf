@@ -2590,6 +2590,27 @@ async function saveHoleScoresToCloud({ playersToScore, holeNumber, groupIndex })
     return saveResult;
   }
 
+  const writeVerified = verifyCloudReadBack({
+    expectedScores: scores,
+    returnedScores: saveResult.scores,
+    holeNumber
+  });
+
+  if (!writeVerified) {
+    logBetaSaveHole("write-response-mismatch", {
+      roundId: roundState.id,
+      groupId,
+      hole: holeNumber,
+      expectedScores: scores,
+      returnedScores: saveResult.scores
+    });
+    return {
+      ok: false,
+      reason: "write-response-mismatch",
+      message: "Save failed - cloud response did not match."
+    };
+  }
+
   const readBackResult = await roundCloudService.fetchGroupHoleScores({
     roundId: roundState.id,
     groupId,
@@ -2603,7 +2624,11 @@ async function saveHoleScoresToCloud({ playersToScore, holeNumber, groupIndex })
       hole: holeNumber,
       message: readBackResult.message
     });
-    return readBackResult;
+    return {
+      ok: true,
+      scores: saveResult.scores,
+      readBackVerified: false
+    };
   }
 
   const verified = verifyCloudReadBack({
@@ -2621,9 +2646,9 @@ async function saveHoleScoresToCloud({ playersToScore, holeNumber, groupIndex })
       returnedScores: readBackResult.scores
     });
     return {
-      ok: false,
-      reason: "readback-mismatch",
-      message: "Save failed - cloud read-back did not match."
+      ok: true,
+      scores: saveResult.scores,
+      readBackVerified: false
     };
   }
 
