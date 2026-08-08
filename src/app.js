@@ -53,6 +53,7 @@ let playerScorecardReturnScreen = "round";
 let playerScorecardState = null;
 let playerScorecardPlayerId = "";
 let finalRoundSyncInFlight = false;
+let finalRoundResumeSyncTimer = null;
 let completedRoundsCache = [];
 let completedRoundsSource = "local";
 let latestCloudActiveRoundInfo = {
@@ -2733,6 +2734,38 @@ async function checkCompletedRoundFromCloud({ silent = false } = {}) {
   }
 }
 
+async function syncCompletedRoundAfterResume() {
+  if (document.hidden || finalRoundSyncInFlight) return false;
+
+  if (roundState && !completedRoundSaved) {
+    return checkCompletedRoundFromCloud({ silent: true });
+  }
+
+  if (!summaryReadOnlyMode) {
+    await refreshLatestCompletedRoundAvailability();
+    return false;
+  }
+
+  const displayedRoundId = summaryDisplayRoundState?.id || "";
+  const result = await loadCompletedRoundsForNavigation();
+  const latestRound = sortCompletedRounds(result.rounds)[0];
+
+  if (!latestRound || latestRound.id === displayedRoundId) return false;
+
+  await openCompletedRoundResults(latestRound, {
+    title: "Latest Round Results",
+    statusMessage: `Latest completed round loaded from ${result.source}.`
+  });
+  return true;
+}
+
+function scheduleCompletedRoundResumeSync() {
+  window.clearTimeout(finalRoundResumeSyncTimer);
+  finalRoundResumeSyncTimer = window.setTimeout(() => {
+    syncCompletedRoundAfterResume();
+  }, 250);
+}
+
 async function completeFullRoundIfReady(context = "completion-check") {
   if (!roundState) return false;
 
@@ -2849,7 +2882,9 @@ async function loadCompletedRoundsForNavigation({ statusElement = null } = {}) {
   if (result.ok) {
     completedRoundsCache = sortCompletedRounds(result.rounds);
     completedRoundsSource = "Supabase";
-    completedRoundsCache.forEach((completedRound) => roundStorage.save(completedRound));
+    // Cache only the newest round for offline access. Copying every full archive
+    // snapshot can exhaust mobile browser storage before results are rendered.
+    if (completedRoundsCache[0]) roundStorage.save(completedRoundsCache[0]);
     updateLastRoundResultsVisibility();
     if (statusElement) statusElement.textContent = "Loaded completed rounds from cloud";
     return {
@@ -3560,9 +3595,15 @@ async function initializeApp() {
 initializeApp();
 
 window.setInterval(() => {
-  if (!roundState || completedRoundSaved) return;
-  checkCompletedRoundFromCloud({ silent: true });
+  if (document.hidden) return;
+  syncCompletedRoundAfterResume();
 }, 30000);
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) scheduleCompletedRoundResumeSync();
+});
+window.addEventListener("pageshow", scheduleCompletedRoundResumeSync);
+window.addEventListener("focus", scheduleCompletedRoundResumeSync);
 
 elements.menuToggle.addEventListener("click", toggleMenu);
 elements.toggleCommissionerMode.addEventListener("click", () => {

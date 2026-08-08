@@ -78,6 +78,29 @@ const players = [
   { id: "player-b", name: "Player B", handicap: 0, tee: "white", inPoints: false, inSkins: false }
 ];
 const chicagoPlayer = { id: "chicago-player", name: "Chicago Player", handicap: 10, tee: "white", inPoints: true, inSkins: false };
+
+const skinTiePlayers = [
+  { id: "skin-tie-a", name: "Skin Tie A", handicap: 11, courseHandicap: 11, tee: "white", inPoints: false, inSkins: true },
+  { id: "skin-tie-b", name: "Skin Tie B", handicap: 11, courseHandicap: 11, tee: "white", inPoints: false, inSkins: true }
+];
+const skinTieRoundState = window.OGSGolf.state.createRoundState(course, skinTiePlayers, {
+  course,
+  players: skinTiePlayers,
+  games: {
+    pointsGame: { enabled: false },
+    netSkins: { enabled: true, skinsHandicapMode: "half" }
+  },
+  playerStatuses: {}
+});
+
+skinTieRoundState.applyCloudHoleScores([
+  { player_id: "skin-tie-a", hole: 11, gross: 4, strokes_received: 1, net: 3 },
+  { player_id: "skin-tie-b", hole: 11, gross: 4, strokes_received: 0, net: 4 }
+]);
+
+assertEqual(skinTieRoundState.getSkinForHole(10).winnerId, null, "Matching pars with the same handicap stroke tie the skin");
+assertEqual(skinTieRoundState.getSkinForHole(10).holeResults[0].skinScore, 3.5, "Half-stroke skins deduct one half stroke");
+assertEqual(skinTieRoundState.getSkinForHole(10).holeResults[1].skinScore, 3.5, "Cloud stroke discrepancies cannot create a false skin winner");
 const chicagoRoundState = window.OGSGolf.state.createRoundState(course, [chicagoPlayer], {
   course,
   players: [chicagoPlayer],

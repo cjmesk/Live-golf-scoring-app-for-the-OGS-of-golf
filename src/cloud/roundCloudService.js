@@ -290,7 +290,7 @@ window.OGSGolf.cloud.roundCloudService = {
 
       const data = await response.json();
       const rounds = (data || [])
-        .map((row) => (typeof row.raw_data === "string" ? JSON.parse(row.raw_data) : row.raw_data))
+        .map((row) => normalizeRawRound(row.raw_data))
         .filter(Boolean);
 
       return {

@@ -453,11 +453,23 @@ window.OGSGolf.state.createRoundState = function createRoundState(
 
     skinResults = savedHoleResults.map((holeResults, index) => {
       if (!holeResults) return null;
-      const skinHoleResults = holeResults.filter((result) =>
-        skinsPlayers.some((player) => player.id === result.playerId)
-      );
+      const skinHoleResults = holeResults
+        .filter((result) => skinsPlayers.some((player) => player.id === result.playerId))
+        .map((result) => {
+          const player = skinsPlayers.find((item) => item.id === result.playerId);
+          const grossScore = Number(result.grossScore);
+          const strokesReceived = getStrokesForPlayerOnHole(player, index);
+
+          return {
+            ...result,
+            grossScore,
+            strokesReceived,
+            netScore: getNetScore(grossScore, strokesReceived),
+            skinScore: getSkinScore(grossScore, strokesReceived)
+          };
+        });
       const hasEveryPlayer = skinsPlayers.length > 0 && skinsPlayers.every((player) =>
-        holeResults.some((result) => result.playerId === player.id)
+        skinHoleResults.some((result) => result.playerId === player.id)
       );
 
       if (!hasEveryPlayer) {
