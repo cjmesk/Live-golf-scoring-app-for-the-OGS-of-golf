@@ -46,10 +46,14 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
   const teeOverrides = elements.memberList.teeOverrides || new Map();
   const pointsParticipation = elements.memberList.pointsParticipation || new Map();
   const skinsParticipation = elements.memberList.skinsParticipation || new Map();
+  const matchTeams = elements.memberList.matchTeams || new Map();
+  const manualMatchHandicaps = elements.memberList.manualMatchHandicaps || new Map();
   elements.memberList.selectedMemberIds = selectedMemberIds;
   elements.memberList.teeOverrides = teeOverrides;
   elements.memberList.pointsParticipation = pointsParticipation;
   elements.memberList.skinsParticipation = skinsParticipation;
+  elements.memberList.matchTeams = matchTeams;
+  elements.memberList.manualMatchHandicaps = manualMatchHandicaps;
   elements.gameList.innerHTML = "";
   elements.teamAssignmentPanel.classList.add("is-hidden");
   elements.teamAssignmentList.innerHTML = "";
@@ -77,12 +81,19 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
     });
 
     elements.memberList.innerHTML = "";
+    const matchEnabled = elements.roundFormat?.value === "four-ball-match";
+    const manualMatchHandicapsEnabled = matchEnabled
+      && elements.matchScoring?.value === "net"
+      && elements.matchHandicapSource?.value === "manual";
 
     visibleMembers.forEach((member) => {
       const isPlayingToday = selectedMemberIds.has(member.id);
       const isInPointsGame = isPlayingToday && pointsParticipation.get(member.id) === true;
       const isInSkinsGame = isPlayingToday && skinsParticipation.get(member.id) === true;
       const selectedTeeId = getValidCourseTeeId(selectedCourse, teeOverrides.get(member.id) || member.tee);
+      const selectedIndex = Array.from(selectedMemberIds).indexOf(member.id);
+      const defaultTeam = selectedIndex >= 2 ? "B" : "A";
+      const matchTeam = matchTeams.get(member.id) || defaultTeam;
       const row = document.createElement("div");
       row.className = "member-row";
       row.innerHTML = `
@@ -105,6 +116,21 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
           <input type="checkbox" data-points-for="${member.id}"${isInPointsGame ? " checked" : ""}${isPlayingToday ? "" : " disabled"}>
           <span>Points Game</span>
         </label>
+        ${matchEnabled && isPlayingToday ? `
+          <label class="tee-select-label">
+            <span>Match Team</span>
+            <select class="field-control" data-match-team-for="${member.id}">
+              <option value="A"${matchTeam === "A" ? " selected" : ""}>${elements.matchTeamALabel?.value || "Team A"}</option>
+              <option value="B"${matchTeam === "B" ? " selected" : ""}>${elements.matchTeamBLabel?.value || "Team B"}</option>
+            </select>
+          </label>
+          ${manualMatchHandicapsEnabled ? `
+            <label class="tee-select-label">
+              <span>Playing HCP</span>
+              <input class="field-control" data-match-handicap-for="${member.id}" type="number" step="1" value="${manualMatchHandicaps.get(member.id) ?? member.courseHandicap ?? member.handicap ?? 0}">
+            </label>
+          ` : ""}
+        ` : ""}
         <label class="member-game-check">
           <input type="checkbox" data-skins-for="${member.id}"${isInSkinsGame ? " checked" : ""}${isPlayingToday ? "" : " disabled"}>
           <span>Skins Game</span>
@@ -124,6 +150,8 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
     const teeSelect = event.target.closest("[data-tee-for]");
     const pointsCheckbox = event.target.closest("[data-points-for]");
     const skinsCheckbox = event.target.closest("[data-skins-for]");
+    const matchTeamSelect = event.target.closest("[data-match-team-for]");
+    const matchHandicapInput = event.target.closest("[data-match-handicap-for]");
 
     if (checkbox?.checked) {
       selectedMemberIds.add(checkbox.dataset.memberId);
@@ -131,6 +159,8 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
       selectedMemberIds.delete(checkbox.dataset.memberId);
       pointsParticipation.delete(checkbox.dataset.memberId);
       skinsParticipation.delete(checkbox.dataset.memberId);
+      matchTeams.delete(checkbox.dataset.memberId);
+      manualMatchHandicaps.delete(checkbox.dataset.memberId);
     }
 
     if (teeSelect) {
@@ -145,11 +175,34 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
       skinsParticipation.set(skinsCheckbox.dataset.skinsFor, skinsCheckbox.checked);
     }
 
+    if (matchTeamSelect) matchTeams.set(matchTeamSelect.dataset.matchTeamFor, matchTeamSelect.value);
+    if (matchHandicapInput) manualMatchHandicaps.set(matchHandicapInput.dataset.matchHandicapFor, Number(matchHandicapInput.value));
+
     updateSelectedCount();
     if (checkbox) {
       renderMemberRows();
     }
   };
+
+  function updateMatchOptions() {
+    const matchEnabled = elements.roundFormat?.value === "four-ball-match";
+    const nineHoles = elements.matchHoles?.value === "9";
+    const netScoring = elements.matchScoring?.value !== "gross";
+    const automaticHandicaps = elements.matchHandicapSource?.value !== "manual";
+    elements.fourBallMatchPanel?.classList.toggle("is-hidden", !matchEnabled);
+    elements.matchNineLabel?.classList.toggle("is-hidden", !nineHoles);
+    elements.matchHandicapSourceLabel?.classList.toggle("is-hidden", !netScoring);
+    elements.matchAllowanceLabel?.classList.toggle("is-hidden", !netScoring || !automaticHandicaps);
+    renderMemberRows();
+  }
+
+  if (elements.roundFormat) elements.roundFormat.onchange = updateMatchOptions;
+  if (elements.matchHoles) elements.matchHoles.onchange = updateMatchOptions;
+  if (elements.matchScoring) elements.matchScoring.onchange = updateMatchOptions;
+  if (elements.matchHandicapSource) elements.matchHandicapSource.onchange = updateMatchOptions;
+  if (elements.matchTeamALabel) elements.matchTeamALabel.oninput = renderMemberRows;
+  if (elements.matchTeamBLabel) elements.matchTeamBLabel.oninput = renderMemberRows;
+  updateMatchOptions();
 };
 
 window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, courses, members) {
@@ -158,20 +211,40 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
   const teeOverrides = elements.memberList.teeOverrides || new Map();
   const pointsParticipation = elements.memberList.pointsParticipation || new Map();
   const skinsParticipation = elements.memberList.skinsParticipation || new Map();
+  const matchTeams = elements.memberList.matchTeams || new Map();
+  const manualMatchHandicaps = elements.memberList.manualMatchHandicaps || new Map();
   const roundDate = elements.roundDate.value || getTodayInputValue();
   const enteredRoundName = elements.roundName.value.trim();
   const roundName = enteredRoundName || `${course.name} - ${roundDate}`;
+  const roundType = Array.from(elements.roundTypeOptions || [])
+    .find((option) => option.checked)?.value === "test" ? "test" : "official";
+  const format = elements.roundFormat?.value === "four-ball-match" ? "four-ball-match" : "standard";
+  const matchHoles = Number(elements.matchHoles?.value) === 9 ? 9 : 18;
+  const fourBallMatch = {
+    enabled: format === "four-ball-match",
+    holes: matchHoles,
+    startingHole: matchHoles === 9 && Number(elements.matchStartingHole?.value) === 10 ? 10 : 1,
+    scoring: elements.matchScoring?.value === "gross" ? "gross" : "net",
+    handicapSource: elements.matchHandicapSource?.value === "manual" ? "manual" : "automatic",
+    allowance: Math.max(0, Math.min(100, Number(elements.matchAllowance?.value ?? 90))),
+    teamALabel: elements.matchTeamALabel?.value.trim() || "Team A",
+    teamBLabel: elements.matchTeamBLabel?.value.trim() || "Team B"
+  };
   const pointsAmount = Math.max(1, Math.round(Number(elements.pointsGameAmount?.value || 15)));
   const skinsAmount = Math.max(1, Math.round(Number(elements.skinsGameAmount?.value || 5)));
   const selectedPlayers = members
     .filter((member) => selectedMemberIds.has(member.id))
-    .map((member) => ({
+    .map((member, selectedIndex) => ({
       ...member,
       tee: getValidCourseTeeId(course, teeOverrides.get(member.id) || member.tee),
       inSkins: skinsParticipation.get(member.id) === true,
       inPoints: pointsParticipation.get(member.id) === true,
       inTeamChallenge: false,
-      teamId: ""
+      teamId: "",
+      matchTeam: format === "four-ball-match" ? (matchTeams.get(member.id) || (selectedIndex < 2 ? "A" : "B")) : "",
+      matchPlayingHandicap: format === "four-ball-match" && fourBallMatch.handicapSource === "manual"
+        ? Number(manualMatchHandicaps.get(member.id) ?? member.courseHandicap ?? member.handicap ?? 0)
+        : null
     }));
   const hasPointsPlayers = selectedPlayers.some((player) => player.inPoints === true);
   const hasSkinsPlayers = selectedPlayers.some((player) => player.inSkins === true);
@@ -188,6 +261,10 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
     courseId: course.id,
     date: roundDate,
     roundName,
+    roundType,
+    countsTowardStats: roundType === "official",
+    format,
+    fourBallMatch,
     players: selectedPlayers,
     selectedPlayerIds: selectedPlayers.map((player) => player.id),
     teamAssignments: {},
@@ -214,6 +291,7 @@ window.OGSGolf.ui.renderRoundSettingsSummary = function renderRoundSettingsSumma
         <strong>${roundSettings.roundName || roundSettings.course.name}</strong>
         <span>${roundSettings.date || ""}</span>
       </div>
+      <div>${roundSettings.roundType === "test" ? "Test Round - excluded from official statistics" : "Official Round - counts toward statistics"}</div>
       <div>${roundSettings.players.length} players | ${roundSettings.groups.length} group${roundSettings.groups.length === 1 ? "" : "s"}</div>
       <div>${groupsText}</div>
     </div>

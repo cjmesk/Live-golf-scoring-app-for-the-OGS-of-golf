@@ -182,7 +182,10 @@ window.OGSGolf.ui.renderPreviousRounds = function renderPreviousRounds(elements,
     return;
   }
 
-  elements.previousRoundsList.innerHTML = sortedRounds
+  const isTestRound = (round) => round.roundType === "test"
+    || round.roundSettings?.roundType === "test"
+    || round.countsTowardStats === false;
+  const renderRoundCards = (roundList) => roundList
     .map((round) => {
       const roundDate = new Date(round.date).toLocaleDateString();
       const courseName = round.course?.name || "Unknown course";
@@ -191,6 +194,7 @@ window.OGSGolf.ui.renderPreviousRounds = function renderPreviousRounds(elements,
       const completedLabel = completedAt
         ? `Completed ${new Date(completedAt).toLocaleString()}`
         : "Completed round";
+      const testRound = isTestRound(round);
 
       return `
         <article class="previous-round-card previous-round-card-button" data-open-completed-round-id="${round.id}">
@@ -198,6 +202,7 @@ window.OGSGolf.ui.renderPreviousRounds = function renderPreviousRounds(elements,
             <div>
               <strong>${courseName}</strong>
               <span>${roundDate}</span>
+              <span>${testRound ? "Test Round - excluded from official statistics" : "Official Round"}</span>
             </div>
             <button type="button" class="secondary-button compact-button" data-open-completed-round-id="${round.id}">
               Open Results
@@ -210,4 +215,18 @@ window.OGSGolf.ui.renderPreviousRounds = function renderPreviousRounds(elements,
       `;
     })
     .join("");
+  const officialRounds = sortedRounds.filter((round) => !isTestRound(round));
+  const testRounds = sortedRounds.filter(isTestRound);
+
+  elements.previousRoundsList.innerHTML = `
+    <section class="round-history-group">
+      <h3>Official Rounds</h3>
+      ${officialRounds.length ? renderRoundCards(officialRounds) : '<div class="empty-state">No official rounds saved yet.</div>'}
+    </section>
+    <section class="round-history-group">
+      <h3>Test Rounds</h3>
+      <span class="player-details">These rounds do not count toward official statistics or winnings.</span>
+      ${testRounds.length ? renderRoundCards(testRounds) : '<div class="empty-state">No test rounds saved yet.</div>'}
+    </section>
+  `;
 };

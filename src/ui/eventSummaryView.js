@@ -44,6 +44,18 @@ window.OGSGolf.ui.renderEventSummary = function renderEventSummary(elements, rou
       <small>${game.count} participating player${game.count === 1 ? "" : "s"}</small>
     </div>
   `).join("");
+  const matchSettings = roundSettings.fourBallMatch;
+  const matchSummary = matchSettings?.enabled ? `
+    <section class="summary-block">
+      <h3>Four-Ball Match Play</h3>
+      <div class="summary-list">
+        <div class="summary-row"><span>Match</span><strong>${matchSettings.holes} holes${matchSettings.holes === 9 ? (matchSettings.startingHole === 10 ? " - Back 9" : " - Front 9") : ""}</strong></div>
+        <div class="summary-row"><span>Scoring</span><strong>${matchSettings.scoring === "net" ? `Net - ${matchSettings.allowance}% allowance` : "Gross"}</strong><small>${matchSettings.handicapSource === "manual" ? "Manual playing handicaps" : "Automatic playing handicaps"}</small></div>
+        <div class="summary-row"><span>${matchSettings.teamALabel}</span><strong>${roundSettings.players.filter((player) => player.matchTeam === "A").map((player) => player.name).join(" / ")}</strong></div>
+        <div class="summary-row"><span>${matchSettings.teamBLabel}</span><strong>${roundSettings.players.filter((player) => player.matchTeam === "B").map((player) => player.name).join(" / ")}</strong></div>
+      </div>
+    </section>
+  ` : "";
 
   elements.eventSummary.innerHTML = `
     <section class="summary-block">
@@ -61,6 +73,11 @@ window.OGSGolf.ui.renderEventSummary = function renderEventSummary(elements, rou
           <strong>${roundSettings.roundName}</strong>
         </div>
         <div class="summary-card">
+          <span>Round Type</span>
+          <strong>${roundSettings.roundType === "test" ? "Test Round" : "Official Round"}</strong>
+          <small>${roundSettings.roundType === "test" ? "Excluded from official statistics" : "Counts toward statistics and winnings"}</small>
+        </div>
+        <div class="summary-card">
           <span>Total Players</span>
           <strong>${roundSettings.players.length}</strong>
         </div>
@@ -70,6 +87,8 @@ window.OGSGolf.ui.renderEventSummary = function renderEventSummary(elements, rou
         </div>
       </div>
     </section>
+
+    ${matchSummary}
 
     <section class="summary-block">
       <h3>Groups and Scorekeepers</h3>

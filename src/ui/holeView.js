@@ -14,6 +14,13 @@ window.OGSGolf.ui.renderHoleView = function renderHoleView(elements, course, pla
     <span>Par ${currentHole.par}</span>
     <span>HCP ${currentHole.handicap}</span>
   `;
+  const matchSummary = roundState.getFourBallMatchSummary?.();
+  if (matchSummary?.settings.enabled) {
+    elements.holeDetails.innerHTML += `
+      <span class="match-live-status">${matchSummary.status}</span>
+      <span>${matchSummary.settings.scoring === "net" ? `Net at ${matchSummary.settings.allowance}%` : "Gross"} Four-Ball</span>
+    `;
+  }
 
   elements.previousHole.disabled = currentHoleIndex === 0;
   elements.nextHole.disabled = currentHoleIndex === roundState.totalHoles - 1;
@@ -41,6 +48,7 @@ window.OGSGolf.ui.renderHoleView = function renderHoleView(elements, course, pla
     playerRow.innerHTML = `
       <div class="hole-player-info">
         <div class="player-name">${player.name}</div>
+        ${matchSummary?.settings.enabled ? `<div class="player-details">${player.matchTeam === "A" ? matchSummary.settings.teamALabel : matchSummary.settings.teamBLabel}${matchSummary.settings.scoring === "net" ? ` | Playing HCP ${matchSummary.playingHandicaps[player.id]}` : " | Gross"}</div>` : ""}
         ${isDnf ? `<div class="player-details dnf-status">${roundState.formatDnfStatus(player)}</div>` : ""}
       </div>
       ${isDnf ? "" : `

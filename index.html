@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OG&apos;s Golf</title>
-  <link rel="stylesheet" href="src/styles/main.css?v=20260805-finish-early">
+  <link rel="stylesheet" href="src/styles/main.css?v=20260808-four-ball-match">
 </head>
 <body>
   <header class="app-header">
@@ -164,6 +164,69 @@
         <input id="roundDate" class="field-control" type="date">
         <label class="field-label" for="roundName">Round name, optional</label>
         <input id="roundName" class="field-control" type="text" placeholder="Twelve Stones Golf Club - 2026-07-10">
+        <fieldset class="round-type-fieldset">
+          <legend class="field-label">Round type</legend>
+          <label class="round-type-option">
+            <input type="radio" name="roundType" value="official" checked>
+            <span><strong>Official Round</strong><small>Counts toward player history, results, and winnings.</small></span>
+          </label>
+          <label class="round-type-option">
+            <input type="radio" name="roundType" value="test">
+            <span><strong>Test Round</strong><small>Saved separately and excluded from official statistics.</small></span>
+          </label>
+        </fieldset>
+        <label class="field-label" for="roundFormat">Scoring format</label>
+        <select id="roundFormat" class="field-control">
+          <option value="standard">Standard Group Scoring</option>
+          <option value="four-ball-match">Four-Ball Match Play</option>
+        </select>
+        <div id="fourBallMatchPanel" class="match-setup-panel is-hidden">
+          <h3>Four-Ball Match Play</h3>
+          <span class="player-details">Exactly four players: two partners against two partners. Each plays their own ball and the lower team score decides each hole.</span>
+          <div class="game-value-grid">
+            <label class="amount-field" for="matchHoles">
+              <span>Match length</span>
+              <select id="matchHoles" class="field-control">
+                <option value="9">9 holes</option>
+                <option value="18">18 holes</option>
+              </select>
+            </label>
+            <label id="matchNineLabel" class="amount-field" for="matchStartingHole">
+              <span>Nine</span>
+              <select id="matchStartingHole" class="field-control">
+                <option value="1">Front 9</option>
+                <option value="10">Back 9</option>
+              </select>
+            </label>
+            <label class="amount-field" for="matchScoring">
+              <span>Scoring</span>
+              <select id="matchScoring" class="field-control">
+                <option value="net">Net</option>
+                <option value="gross">Gross</option>
+              </select>
+            </label>
+            <label id="matchHandicapSourceLabel" class="amount-field" for="matchHandicapSource">
+              <span>Handicaps</span>
+              <select id="matchHandicapSource" class="field-control">
+                <option value="automatic">Automatic</option>
+                <option value="manual">Manual playing handicaps</option>
+              </select>
+            </label>
+            <label id="matchAllowanceLabel" class="amount-field" for="matchAllowance">
+              <span>USGA allowance %</span>
+              <input id="matchAllowance" class="field-control" type="number" min="0" max="100" step="1" value="90">
+            </label>
+            <label class="amount-field" for="matchTeamALabel">
+              <span>Team A name</span>
+              <input id="matchTeamALabel" class="field-control" type="text" value="Team A">
+            </label>
+            <label class="amount-field" for="matchTeamBLabel">
+              <span>Team B name</span>
+              <input id="matchTeamBLabel" class="field-control" type="text" value="Team B">
+            </label>
+          </div>
+          <div class="player-details">Assign each selected golfer to Team A or Team B below.</div>
+        </div>
       </div>
 
       <div class="setup-panel">
@@ -620,28 +683,29 @@
   <script src="src/data/players.js?v=20260709-v098-menu"></script>
   <script src="src/rules/points.js?v=20260714-chicago-points"></script>
   <script src="src/rules/handicap.js?v=20260728-round-handicap-source"></script>
+  <script src="src/rules/fourBallMatch.js?v=20260808-four-ball-match"></script>
   <script src="src/rules/skins.js?v=20260709-v098-menu"></script>
   <script src="src/state/playerStorage.js?v=20260709-v098-menu"></script>
   <script src="src/state/scorerStorage.js?v=20260711-device-scorer"></script>
-  <script src="src/state/roundState.js?v=20260803-late-player-form"></script>
+  <script src="src/state/roundState.js?v=20260808-four-ball-match"></script>
   <script src="src/state/roundStorage.js?v=20260807-mobile-cache-guard"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/roundCloudService.js?v=20260807-completed-round-loader"></script>
-  <script src="src/ui/dom.js?v=20260805-finish-early"></script>
+  <script src="src/ui/dom.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/formatters.js?v=20260710-index-course-handicap"></script>
-  <script src="src/ui/setupView.js?v=20260731-park-mammoth"></script>
-  <script src="src/ui/holeView.js?v=20260801-change-tee"></script>
-  <script src="src/ui/leaderboardView.js?v=20260728-player-scorecard"></script>
+  <script src="src/ui/setupView.js?v=20260808-four-ball-match"></script>
+  <script src="src/ui/holeView.js?v=20260808-four-ball-match"></script>
+  <script src="src/ui/leaderboardView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/pointsPayoutView.js?v=20260710-points-quota"></script>
   <script src="src/ui/skinsView.js?v=20260709-v098-menu"></script>
-  <script src="src/ui/finalSummaryView.js?v=20260728-player-scorecard"></script>
+  <script src="src/ui/finalSummaryView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/playerScorecardView.js?v=20260803-scorecard-totals"></script>
-  <script src="src/ui/previousRoundsView.js?v=20260728-completed-nav"></script>
+  <script src="src/ui/previousRoundsView.js?v=20260808-round-classification"></script>
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
-  <script src="src/ui/groupSetupView.js?v=20260805-always-18-setup"></script>
-  <script src="src/ui/eventSummaryView.js?v=20260710-round-setup"></script>
-  <script src="src/app.js?v=20260808-active-leaderboard-first"></script>
+  <script src="src/ui/groupSetupView.js?v=20260808-four-ball-match"></script>
+  <script src="src/ui/eventSummaryView.js?v=20260808-four-ball-match"></script>
+  <script src="src/app.js?v=20260808-four-ball-match"></script>
 </body>
 </html>

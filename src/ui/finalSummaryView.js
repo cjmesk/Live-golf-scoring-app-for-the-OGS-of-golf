@@ -4,6 +4,7 @@ window.OGSGolf.ui = window.OGSGolf.ui || {};
 window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, roundState) {
   const summary = roundState.getFinalSummary();
   const roundSettings = roundState.roundSettings || {};
+  const matchSummary = roundState.getFourBallMatchSummary?.();
 
   function formatDate(value) {
     if (!value) return "Date not saved";
@@ -321,6 +322,20 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
       `;
     })
     .join("");
+  const matchResultsSection = matchSummary?.settings.enabled ? `
+    <section class="summary-block match-result-block">
+      <h3>Four-Ball Match Result</h3>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span>Final Result</span>
+          <strong>${matchSummary.status}</strong>
+          <small>${matchSummary.settings.scoring === "net" ? `Net match | ${matchSummary.settings.allowance}% allowance` : "Gross match"}</small>
+        </div>
+        <div class="summary-card"><span>${matchSummary.settings.teamALabel}</span><strong>${matchSummary.teams.A.map((player) => player.name).join(" / ")}</strong><small>${matchSummary.teamAWins} holes won</small></div>
+        <div class="summary-card"><span>${matchSummary.settings.teamBLabel}</span><strong>${matchSummary.teams.B.map((player) => player.name).join(" / ")}</strong><small>${matchSummary.teamBWins} holes won</small></div>
+      </div>
+    </section>
+  ` : "";
 
   elements.finalSummary.innerHTML = `
     <section class="summary-hero">
@@ -333,6 +348,8 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
         <span>${getHolesPlayedText()}</span>
       </div>
     </section>
+
+    ${matchResultsSection}
 
     ${renderPayoutSection()}
 
