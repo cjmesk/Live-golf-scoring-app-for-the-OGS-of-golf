@@ -48,7 +48,7 @@
     <button type="button" data-menu-action="editSetup" class="admin-only">Edit Round Setup</button>
     <button type="button" data-menu-action="scoring">Live Scoring</button>
     <button type="button" data-menu-action="leaderboard">Leaderboard</button>
-    <button id="menuLastRoundResults" type="button" data-menu-action="lastResults" class="is-hidden">Latest Round Results</button>
+    <button id="menuLastRoundResults" type="button" data-menu-action="lastResults" class="is-hidden">Latest Official Round</button>
     <button type="button" data-menu-action="courseInfo">Course Information</button>
     <button type="button" data-menu-action="handicapVerify" class="admin-only">Course Handicap Verification</button>
     <button type="button" data-menu-action="players" class="admin-only">Player Management</button>
@@ -107,7 +107,7 @@
       <div class="today-actions">
         <button id="viewLiveMatch" type="button" class="save-button start-button">View Live Match</button>
         <button id="choosePlayerScoring" type="button" class="secondary-button">I'm Playing / Scoring</button>
-        <button id="todayLastRoundResults" type="button" class="secondary-button is-hidden">Latest Round Results</button>
+        <button id="todayLastRoundResults" type="button" class="secondary-button is-hidden">Latest Official Round</button>
         <button id="todayCommissionerMode" type="button" class="secondary-button">Commissioner Mode</button>
       </div>
       <div id="todayStatus" class="cloud-save-status"></div>
@@ -503,8 +503,8 @@
         <button id="summaryPreviousRounds" type="button" class="secondary-button">Previous Rounds</button>
         <button id="summaryReturnHome" type="button" class="secondary-button">Return to Home</button>
         <button id="summaryUndoLastHole" type="button" class="secondary-button">Undo Last Hole</button>
-        <button id="saveRound" type="button" class="save-button">Confirm Final Scores</button>
-        <button id="saveRoundCloud" type="button" class="save-button">Save Completed Round to Cloud</button>
+        <button id="saveRound" type="button" class="save-button is-hidden">Confirm Final Scores</button>
+        <button id="saveRoundCloud" type="button" class="save-button is-hidden">Retry Cloud Save</button>
         <button id="startNewRound" type="button" class="secondary-button admin-only">Start New Round</button>
       </div>
       <div id="cloudSaveStatus" class="cloud-save-status"></div>
@@ -706,6 +706,6 @@
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
   <script src="src/ui/groupSetupView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/eventSummaryView.js?v=20260808-four-ball-match"></script>
-  <script src="src/app.js?v=20260808-scorer-screen-status"></script>
+  <script src="src/app.js?v=20260808-finish-flow"></script>
 </body>
 </html>
