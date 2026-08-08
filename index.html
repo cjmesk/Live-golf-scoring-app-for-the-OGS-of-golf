@@ -13,16 +13,16 @@
       <p class="eyebrow">Twelve Stones Golf Club</p>
       <h1>OG&apos;s Golf</h1>
     </div>
-    <button id="resetScores" type="button" class="reset-button admin-only">Reset</button>
+    <button id="resetScores" type="button" class="reset-button is-hidden">Reset This Device</button>
   </header>
 
   <div id="resetRoundConfirm" class="reset-confirm-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="resetRoundConfirmTitle">
     <div class="reset-confirm-card">
-      <h2 id="resetRoundConfirmTitle">Reset current round?</h2>
-      <p>This will erase all scores and round progress. This cannot be undone.</p>
+      <h2 id="resetRoundConfirmTitle">Reset this device?</h2>
+      <p>This clears the round from this device only. The shared cloud round and its saved scores will not be deleted.</p>
       <div class="reset-confirm-actions">
         <button id="cancelResetRound" type="button" class="secondary-button">Cancel</button>
-        <button id="confirmResetRound" type="button" class="reset-button">Yes, Reset Round</button>
+        <button id="confirmResetRound" type="button" class="reset-button">Yes, Reset This Device</button>
       </div>
     </div>
   </div>
@@ -706,6 +706,6 @@
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
   <script src="src/ui/groupSetupView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/eventSummaryView.js?v=20260808-four-ball-match"></script>
-  <script src="src/app.js?v=20260808-hole-save-readback"></script>
+  <script src="src/app.js?v=20260808-reset-visibility"></script>
 </body>
 </html>
