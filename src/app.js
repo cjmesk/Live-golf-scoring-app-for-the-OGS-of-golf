@@ -456,11 +456,41 @@ async function showLiveScoring() {
 }
 
 async function showLeaderboard() {
-  await showLiveScoring();
-
   if (roundState) {
+    if (!completedRoundSaved) {
+      await checkCompletedRoundFromCloud({ silent: true });
+    }
+
     showLeaderboardPage();
+    return;
   }
+
+  if (summaryDisplayRoundState) {
+    const summaryPlayers = summaryDisplayRoundState
+      .getFinalSummary()
+      .playerTotals
+      .map((item) => item.player);
+    showLeaderboardPage(summaryDisplayRoundState, summaryPlayers);
+    return;
+  }
+
+  const result = await loadCompletedRoundsForNavigation();
+  const latestRound = sortCompletedRounds(result.rounds)[0];
+  const completedRound = normalizeCompletedRoundForReadOnly(latestRound);
+  const completedRoundState = createReadOnlyRoundStateFromSavedRound(completedRound);
+
+  if (!completedRoundState) {
+    showTodayRoundScreen();
+    elements.todayStatus.textContent = "No active or completed round found yet.";
+    return;
+  }
+
+  summaryDisplayRoundState = completedRoundState;
+  summaryReadOnlyMode = true;
+  showLeaderboardPage(
+    completedRoundState,
+    completedRoundState.getFinalSummary().playerTotals.map((item) => item.player)
+  );
 }
 
 function showSimpleScreen(screenName) {
