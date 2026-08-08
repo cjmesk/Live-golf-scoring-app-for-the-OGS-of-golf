@@ -352,6 +352,7 @@ function renderAccessMode() {
   elements.adminOnlyItems.forEach((item) => {
     item.classList.toggle("is-hidden", !commissionerMode);
   });
+  elements.resetScores.classList.toggle("is-hidden", !commissionerMode || !roundState);
 
   elements.toggleCommissionerMode.textContent = commissionerMode
     ? "Commissioner Mode: On"
@@ -4128,6 +4129,10 @@ async function confirmFinishRoundEarly() {
 
 async function confirmResetCurrentRound() {
   closeResetRoundConfirm();
+  if (!commissionerMode || !roundState) {
+    renderAccessMode();
+    return;
+  }
   const resetResult = await clearRoundCacheForReset();
   renderSetupView(elements, courses, members);
   setActiveScreen("setup");
