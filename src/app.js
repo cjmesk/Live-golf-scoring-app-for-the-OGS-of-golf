@@ -2752,11 +2752,11 @@ function saveCompletedRound() {
 }
 
 function setSummaryButtonsForReadOnly(isReadOnly) {
-  elements.saveRound.classList.toggle("is-hidden", isReadOnly);
-  elements.saveRoundCloud.classList.toggle("is-hidden", isReadOnly);
+  elements.saveRound.classList.add("is-hidden");
+  elements.saveRoundCloud.classList.add("is-hidden");
   elements.summaryUndoLastHole.classList.toggle("is-hidden", isReadOnly);
   elements.startNewRound.classList.toggle("is-hidden", isReadOnly || !commissionerMode);
-  elements.summaryPreviousRounds.classList.toggle("is-hidden", isReadOnly);
+  elements.summaryPreviousRounds.classList.remove("is-hidden");
 }
 
 function showFinalSummary(summaryState = roundState, { readOnly = false, statusMessage = "" } = {}) {
@@ -2773,8 +2773,8 @@ function showFinalSummary(summaryState = roundState, { readOnly = false, statusM
   elements.cloudSaveStatus.textContent = statusMessage || (readOnly
     ? "Showing the most recently completed round saved on this device."
     : completedRoundSaved
-    ? "Final scores recorded."
-    : "Round complete. Review scores, then tap Confirm Final Scores.");
+    ? "Round complete. Final scores saved automatically."
+    : "Round complete. Saving final scores automatically...");
   scrollToTop();
 }
 
@@ -2862,8 +2862,10 @@ async function completeFullRoundIfReady(context = "completion-check") {
   try {
     await roundCloudService.saveCompletedRound(roundState.getRoundExport());
     await roundCloudService.clearActiveRound();
+    elements.saveRoundCloud.classList.add("is-hidden");
     elements.cloudSaveStatus.textContent = "Round Complete. Final scores saved locally and to cloud.";
   } catch (error) {
+    elements.saveRoundCloud.classList.remove("is-hidden");
     elements.cloudSaveStatus.textContent = "Round Complete. Final scores saved locally. Cloud save did not finish.";
   }
 
@@ -2956,6 +2958,7 @@ async function saveRoundToCloud() {
   elements.cloudSaveStatus.textContent = "Saving to cloud...";
   const result = await roundCloudService.saveCompletedRound(roundState.getRoundExport());
   elements.cloudSaveStatus.textContent = result.message;
+  elements.saveRoundCloud.classList.toggle("is-hidden", result.ok);
 }
 
 async function loadCompletedRoundsForNavigation({ statusElement = null } = {}) {
@@ -3049,7 +3052,7 @@ async function showLatestRoundResults() {
   }
 
   openCompletedRoundResults(latestRound, {
-    title: "Latest Round Results",
+    title: "Latest Official Round",
     statusMessage: `Read-only results from the latest completed round loaded from ${result.source}.`
   });
 }
