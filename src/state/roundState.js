@@ -1306,8 +1306,11 @@ window.OGSGolf.state.createRoundState = function createRoundState(
       if (!player || holeIndex < 0 || holeIndex >= totalHoles) return;
 
       const grossScore = Number(scoreRow.gross);
-      const strokesReceived = Number(scoreRow.strokes_received || 0);
-      const netScore = Number(scoreRow.net ?? grossScore - strokesReceived);
+      // Gross is the authoritative saved score. Tee and handicap changes can make
+      // the cloud's derived stroke/net fields stale, so always rebuild them from
+      // the player's current round settings when scores are loaded or refreshed.
+      const strokesReceived = getStrokesForPlayerOnHole(player, holeIndex);
+      const netScore = getNetScore(grossScore, strokesReceived);
       const skinScore = getSkinScore(grossScore, strokesReceived);
       const existingHoleResults = savedHoleResults[holeIndex] || [];
 
@@ -1407,7 +1410,6 @@ window.OGSGolf.state.createRoundState = function createRoundState(
       if (!player) return;
 
       const handicapIndex = Number(row.handicap_index ?? player.handicap ?? player.handicapIndex ?? 0);
-      const courseHandicap = Number(row.course_handicap);
 
       if (row.tee) player.tee = row.tee;
 
@@ -1416,13 +1418,11 @@ window.OGSGolf.state.createRoundState = function createRoundState(
         player.handicapIndex = handicapIndex;
       }
 
-      if (Number.isFinite(courseHandicap)) {
-        player.courseHandicap = courseHandicap;
-        courseHandicaps[player.id] = courseHandicap;
-      } else if (Number.isFinite(handicapIndex)) {
-        courseHandicaps[player.id] = getCourseHandicap(player, course);
-        player.courseHandicap = courseHandicaps[player.id];
-      }
+      // Tee + handicap index are the source of truth. A tee can be changed while
+      // a stale course_handicap is still present in the cloud row, so accepting
+      // that cached value would restore the old strokes and points target.
+      courseHandicaps[player.id] = getCourseHandicap(player, course);
+      player.courseHandicap = courseHandicaps[player.id];
 
       rebuildSavedHoleResultForPlayer(player);
     });

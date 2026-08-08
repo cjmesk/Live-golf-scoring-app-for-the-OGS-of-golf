@@ -161,6 +161,39 @@ assertEqual(teeChangeRoundState.getPlayerHoleResult(teeChangePlayer, 0).strokesR
 assertEqual(teeChangeRoundState.getPlayerHoleResult(teeChangePlayer, 0).netScore, 5, "Net score recalculates without changing gross score");
 assertEqual(teeChangeRoundState.getPointsDifferential(teeChangePlayer, "overall").target, 36, "Chicago target recalculates from the new course handicap");
 
+const staleCloudPlayer = { id: "stale-cloud-player", name: "Alex", handicap: 6, tee: "white", inPoints: true, inSkins: true };
+const staleCloudRoundState = window.OGSGolf.state.createRoundState(course, [staleCloudPlayer], {
+  course,
+  players: [staleCloudPlayer],
+  groups: [["stale-cloud-player"]],
+  groupRecords: [{ holesToPlay: 18 }],
+  games: { pointsGame: { enabled: true }, netSkins: { enabled: true } },
+  playerStatuses: {}
+});
+
+staleCloudRoundState.applyCloudHoleScores([
+  { player_id: "stale-cloud-player", hole: 1, gross: 5, strokes_received: 1, net: 4 },
+  { player_id: "stale-cloud-player", hole: 12, gross: 6, strokes_received: 1, net: 5 }
+]);
+staleCloudRoundState.applyCloudRoundPlayers([{
+  player_id: "stale-cloud-player", tee: "gold", handicap_index: 6, course_handicap: 6
+}]);
+
+assertEqual(staleCloudPlayer.tee, "gold", "Cloud round player restores the changed tee");
+assertEqual(staleCloudRoundState.courseHandicaps["stale-cloud-player"], 0, "Cloud load recalculates a stale course handicap from tee and index");
+assertEqual(staleCloudRoundState.getPlayerHoleResult(staleCloudPlayer, 0).strokesReceived, 0, "Cloud load rebuilds saved-hole strokes for the changed tee");
+assertEqual(staleCloudRoundState.getPlayerHoleResult(staleCloudPlayer, 0).netScore, 5, "Cloud load rebuilds saved-hole net score while preserving gross");
+assertEqual(staleCloudRoundState.getPlayerHoleResult(staleCloudPlayer, 11).strokesReceived, 0, "Tee change rebuilds strokes on previously played hole 12");
+assertEqual(staleCloudRoundState.getPlayerHoleResult(staleCloudPlayer, 11).netScore, 6, "Tee change rebuilds net score on previously played hole 12");
+assertEqual(staleCloudRoundState.getPointsDifferential(staleCloudPlayer, "overall").target, 36, "Cloud load rebuilds the points target for the changed tee");
+
+staleCloudRoundState.applyCloudHoleScores([{
+  player_id: "stale-cloud-player", hole: 1, gross: 5, strokes_received: 1, net: 4
+}]);
+
+assertEqual(staleCloudRoundState.getPlayerHoleResult(staleCloudPlayer, 0).strokesReceived, 0, "Live cloud score refresh cannot restore stale strokes after a tee change");
+assertEqual(staleCloudRoundState.getPlayerHoleResult(staleCloudPlayer, 0).netScore, 5, "Live cloud score refresh keeps derived net score current");
+
 const roundState = window.OGSGolf.state.createRoundState(course, players, {
   course,
   players,
