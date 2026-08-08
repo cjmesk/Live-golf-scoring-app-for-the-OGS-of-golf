@@ -185,30 +185,41 @@ window.OGSGolf.ui.renderPreviousRounds = function renderPreviousRounds(elements,
   const isTestRound = (round) => round.roundType === "test"
     || round.roundSettings?.roundType === "test"
     || round.countsTowardStats === false;
-  const renderRoundCards = (roundList) => roundList
+  const getFormatLabel = (round) => {
+    const format = round.roundSettings?.format;
+    if (format === "four-ball-match") return "Four-Ball Match Play";
+    if (format === "standard") return "Standard Stroke Play";
+    return round.roundSettings?.roundName || "Golf Round";
+  };
+  const renderRoundCards = (roundList, { latest = false } = {}) => roundList
     .map((round) => {
       const roundDate = new Date(round.date).toLocaleDateString();
       const courseName = round.course?.name || "Unknown course";
-      const playerCount = round.players?.length || 0;
+      const playerNames = (round.players || []).map((player) => player.name).filter(Boolean);
+      const playerCount = playerNames.length;
       const completedAt = round.completedAt || round.roundSettings?.completedAt;
       const completedLabel = completedAt
         ? `Completed ${new Date(completedAt).toLocaleString()}`
         : "Completed round";
       const testRound = isTestRound(round);
+      const roundName = round.roundSettings?.roundName?.trim();
+      const formatLabel = getFormatLabel(round);
 
       return `
-        <article class="previous-round-card previous-round-card-button" data-open-completed-round-id="${round.id}">
+        <article class="previous-round-card previous-round-card-button${latest ? " latest-round-card" : ""}" data-open-completed-round-id="${round.id}">
           <div class="previous-round-header">
             <div>
+              ${latest ? "<span><b>Newest completed round</b></span>" : ""}
               <strong>${courseName}</strong>
               <span>${roundDate}</span>
               <span>${testRound ? "Test Round - excluded from official statistics" : "Official Round"}</span>
             </div>
             <button type="button" class="secondary-button compact-button" data-open-completed-round-id="${round.id}">
-              Open Results
+              ${latest ? "Open Latest Results" : "Open Results"}
             </button>
           </div>
-          <div class="player-details">Players: ${playerCount}</div>
+          <div class="player-details">Game: ${roundName || formatLabel}</div>
+          <div class="player-details">Players (${playerCount}): ${playerNames.join(", ") || "Names not available"}</div>
           <div class="player-details">Holes played: ${getHolesPlayedLabel(round)}</div>
           <div class="player-details">${completedLabel}</div>
         </article>
@@ -217,16 +228,23 @@ window.OGSGolf.ui.renderPreviousRounds = function renderPreviousRounds(elements,
     .join("");
   const officialRounds = sortedRounds.filter((round) => !isTestRound(round));
   const testRounds = sortedRounds.filter(isTestRound);
+  const latestRound = sortedRounds[0];
+  const olderOfficialRounds = officialRounds.filter((round) => round.id !== latestRound.id);
+  const olderTestRounds = testRounds.filter((round) => round.id !== latestRound.id);
 
   elements.previousRoundsList.innerHTML = `
+    <section class="round-history-group latest-round-group">
+      <h3>Latest Completed Round</h3>
+      ${renderRoundCards([latestRound], { latest: true })}
+    </section>
     <section class="round-history-group">
       <h3>Official Rounds</h3>
-      ${officialRounds.length ? renderRoundCards(officialRounds) : '<div class="empty-state">No official rounds saved yet.</div>'}
+      ${olderOfficialRounds.length ? renderRoundCards(olderOfficialRounds) : '<div class="empty-state">No other official rounds saved yet.</div>'}
     </section>
     <section class="round-history-group">
       <h3>Test Rounds</h3>
       <span class="player-details">These rounds do not count toward official statistics or winnings.</span>
-      ${testRounds.length ? renderRoundCards(testRounds) : '<div class="empty-state">No test rounds saved yet.</div>'}
+      ${olderTestRounds.length ? renderRoundCards(olderTestRounds) : '<div class="empty-state">No other test rounds saved yet.</div>'}
     </section>
   `;
 };
