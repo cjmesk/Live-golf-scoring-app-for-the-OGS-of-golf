@@ -31,7 +31,8 @@ function getExistingGroupNumber(playerId, groups) {
 
 window.OGSGolf.ui.renderGroupSetupView = function renderGroupSetupView(elements, roundSettings) {
   const players = roundSettings.players;
-  const groupCount = roundSettings.groupCount || Math.max(1, roundSettings.groups?.length || getDefaultGroupCount(players.length));
+  const isFourBallMatch = roundSettings.format === "four-ball-match";
+  const groupCount = isFourBallMatch ? 1 : (roundSettings.groupCount || Math.max(1, roundSettings.groups?.length || getDefaultGroupCount(players.length)));
   const existingGroups = roundSettings.groups || [];
 
   elements.groupSetupList.groupCount = groupCount;
@@ -39,6 +40,10 @@ window.OGSGolf.ui.renderGroupSetupView = function renderGroupSetupView(elements,
     `${players.length} player${players.length === 1 ? "" : "s"} selected | ${groupCount} group${groupCount === 1 ? "" : "s"}`;
   elements.groupSetupStatus.textContent = "Create groups, then choose one scorekeeper from each group.";
   elements.removeGroup.disabled = groupCount <= 1;
+  elements.addGroup.disabled = isFourBallMatch;
+  if (isFourBallMatch) {
+    elements.groupSetupStatus.textContent = `${roundSettings.fourBallMatch.holes}-hole Four-Ball match: keep all four golfers together and choose the scorekeeper.`;
+  }
 
   elements.groupSetupList.innerHTML = players
     .map((player, index) => {

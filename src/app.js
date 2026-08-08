@@ -267,13 +267,20 @@ function sortCompletedRounds(rounds) {
     .sort((firstRound, secondRound) => getCompletedRoundTime(secondRound) - getCompletedRoundTime(firstRound));
 }
 
+function isOfficialRound(round) {
+  return round?.roundType !== "test"
+    && round?.roundSettings?.roundType !== "test"
+    && round?.countsTowardStats !== false
+    && round?.roundSettings?.countsTowardStats !== false;
+}
+
 function getLocalCompletedRounds() {
   return sortCompletedRounds(roundStorage.getAll());
 }
 
 function getLastCompletedRound() {
-  return sortCompletedRounds(completedRoundsCache)[0]
-    || getLocalCompletedRounds()[0]
+  return sortCompletedRounds(completedRoundsCache).find(isOfficialRound)
+    || getLocalCompletedRounds().find(isOfficialRound)
     || null;
 }
 
@@ -484,7 +491,7 @@ async function showLeaderboard() {
   }
 
   const result = await loadCompletedRoundsForNavigation();
-  const latestRound = sortCompletedRounds(result.rounds)[0];
+  const latestRound = sortCompletedRounds(result.rounds).find(isOfficialRound);
   const completedRound = normalizeCompletedRoundForReadOnly(latestRound);
   const completedRoundState = createReadOnlyRoundStateFromSavedRound(completedRound);
 
@@ -1404,6 +1411,16 @@ function syncGroupCompletionFromScores(groupIndex) {
 
   record.completedHoleNumbers = completedFromScores;
 
+  const matchSummary = roundSettings?.format === "four-ball-match"
+    ? roundState.getFourBallMatchSummary?.()
+    : null;
+  if (matchSummary?.complete) {
+    record.earlyFinished = matchSummary.holesPlayed < record.holesToPlay;
+    record.earlyFinishedAt = record.earlyFinished ? new Date().toISOString() : record.earlyFinishedAt;
+    record.status = "completed";
+    return record;
+  }
+
   if (record.earlyFinished === true) {
     record.status = "completed";
     return record;
@@ -1954,7 +1971,7 @@ function getNextUncompletedHoleAfter(groupIndex, savedHoleNumber) {
   const completed = new Set(record.completedHoleNumbers || []);
   const savedSequenceIndex = sequence.indexOf(Number(savedHoleNumber));
 
-  if (record.completedHoleNumbers.length >= record.holesToPlay) return null;
+  if (record.status === "completed" || record.completedHoleNumbers.length >= record.holesToPlay) return null;
   if (savedSequenceIndex < 0) return getNextUncompletedHole(groupIndex);
 
   for (let offset = 1; offset <= sequence.length; offset += 1) {
@@ -2787,7 +2804,7 @@ async function syncCompletedRoundAfterResume() {
 
   const displayedRoundId = summaryDisplayRoundState?.id || "";
   const result = await loadCompletedRoundsForNavigation();
-  const latestRound = sortCompletedRounds(result.rounds)[0];
+  const latestRound = sortCompletedRounds(result.rounds).find(isOfficialRound);
 
   if (!latestRound || latestRound.id === displayedRoundId) return false;
 
@@ -2923,7 +2940,10 @@ async function loadCompletedRoundsForNavigation({ statusElement = null } = {}) {
     completedRoundsSource = "Supabase";
     // Cache only the newest round for offline access. Copying every full archive
     // snapshot can exhaust mobile browser storage before results are rendered.
-    if (completedRoundsCache[0]) roundStorage.save(completedRoundsCache[0]);
+    const latestOfficialRound = completedRoundsCache.find(isOfficialRound);
+    const latestTestRound = completedRoundsCache.find((round) => !isOfficialRound(round));
+    if (latestOfficialRound) roundStorage.save(latestOfficialRound);
+    if (latestTestRound) roundStorage.save(latestTestRound);
     updateLastRoundResultsVisibility();
     if (statusElement) statusElement.textContent = "Loaded completed rounds from cloud";
     return {
@@ -2993,7 +3013,7 @@ function showPreviousRounds() {
 
 async function showLatestRoundResults() {
   const result = await loadCompletedRoundsForNavigation();
-  const latestRound = sortCompletedRounds(result.rounds)[0];
+  const latestRound = sortCompletedRounds(result.rounds).find(isOfficialRound);
 
   if (!latestRound) {
     showTodayRoundScreen();
@@ -3281,6 +3301,23 @@ function continueToGroups() {
     return;
   }
 
+  if (pendingRoundSettings.format === "four-ball-match") {
+    const teamAPlayers = pendingRoundSettings.players.filter((player) => player.matchTeam === "A");
+    const teamBPlayers = pendingRoundSettings.players.filter((player) => player.matchTeam === "B");
+
+    if (pendingRoundSettings.players.length !== 4 || teamAPlayers.length !== 2 || teamBPlayers.length !== 2) {
+      elements.modeStatus.textContent = "Four-Ball Match Play requires exactly four players, with two assigned to each team.";
+      return;
+    }
+
+    if (pendingRoundSettings.fourBallMatch.scoring === "net"
+      && pendingRoundSettings.fourBallMatch.handicapSource === "manual"
+      && pendingRoundSettings.players.some((player) => !Number.isFinite(Number(player.matchPlayingHandicap)))) {
+      elements.modeStatus.textContent = "Enter a manual playing handicap for all four match players.";
+      return;
+    }
+  }
+
   renderGroupSetupView(elements, pendingRoundSettings);
   setActiveScreen("groups");
   scrollToTop();
@@ -3293,6 +3330,7 @@ function backToRoundSetup() {
 
 function updateGroupCount(amount) {
   if (!pendingRoundSettings) return;
+  if (pendingRoundSettings.format === "four-ball-match") return;
 
   const currentGroups = readGroupAssignments(elements, pendingRoundSettings.players);
   const currentCount = elements.groupSetupList.groupCount || Math.max(1, currentGroups.length);
@@ -3358,12 +3396,23 @@ function reviewEventSummary() {
 
   const groups = readGroupAssignments(elements, pendingRoundSettings.players);
   const groupScorers = readGroupScorers(elements, groups);
-  const groupPlaySettings = readGroupPlaySettings(elements, groups);
-  const validationMessage = validateGroupSetup(groups, groupScorers, pendingRoundSettings.players);
+  let groupPlaySettings = readGroupPlaySettings(elements, groups);
+  const matchGroupError = pendingRoundSettings.format === "four-ball-match" && groups.length !== 1
+    ? "Four-Ball Match Play must keep all four players in one scoring group."
+    : "";
+  const validationMessage = matchGroupError || validateGroupSetup(groups, groupScorers, pendingRoundSettings.players);
 
   if (validationMessage) {
     elements.groupSetupStatus.textContent = validationMessage;
     return;
+  }
+
+
+  if (pendingRoundSettings.format === "four-ball-match") {
+    groupPlaySettings = [{
+      startingHole: pendingRoundSettings.fourBallMatch.startingHole,
+      holesToPlay: pendingRoundSettings.fourBallMatch.holes
+    }];
   }
 
   roundSettings = {
@@ -3427,6 +3476,10 @@ function loadSavedRoundIntoState(savedRound) {
   }));
   roundSettings = {
     ...savedRound.roundSettings,
+    roundType: savedRound.roundType === "test" || savedRound.roundSettings?.roundType === "test" ? "test" : "official",
+    countsTowardStats: savedRound.roundType !== "test"
+      && savedRound.roundSettings?.roundType !== "test"
+      && savedRound.countsTowardStats !== false,
     course: selectedCourse,
     players: selectedPlayers
   };
@@ -3950,6 +4003,7 @@ elements.saveHole.addEventListener("click", async () => {
 
   roundState.applyCloudHoleScores(cloudSaveResult.scores);
   markGroupHoleComplete(savedGroupIndex, savedHoleNumber);
+  syncGroupCompletionFromScores(savedGroupIndex);
   const nextHoleNumber = getNextUncompletedHoleAfter(savedGroupIndex, savedHoleNumber);
 
   if (nextHoleNumber === null) {

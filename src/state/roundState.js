@@ -899,6 +899,9 @@ window.OGSGolf.state.createRoundState = function createRoundState(
   }
 
   function isRoundComplete() {
+    const matchSummary = getFourBallMatchSummary();
+    if (matchSummary?.settings.enabled) return matchSummary.complete;
+
     return players.every((player) =>
       isPlayerDnf(player) || savedScores[player.id].every((score) => score !== null)
     );
@@ -1039,6 +1042,17 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     );
   }
 
+  function getFourBallMatchSummary() {
+    if (!window.OGSGolf.rules.fourBallMatch) return null;
+    return window.OGSGolf.rules.fourBallMatch.getSummary({
+      players,
+      savedScores,
+      course,
+      courseHandicaps,
+      roundSettings
+    });
+  }
+
   function getRoundExport() {
     const completedAt = new Date().toISOString();
     const holeByHole = Array.from({ length: totalHoles }, (_, holeIndex) => ({
@@ -1073,6 +1087,8 @@ window.OGSGolf.state.createRoundState = function createRoundState(
       date: completedAt,
       savedAt: completedAt,
       completed: true,
+      roundType: roundSettings.roundType === "test" ? "test" : "official",
+      countsTowardStats: roundSettings.roundType !== "test",
       roundSettings,
       course: {
         id: course.id,
@@ -1089,6 +1105,8 @@ window.OGSGolf.state.createRoundState = function createRoundState(
         inPoints: isInPoints(player),
         inTeamChallenge: player.inTeamChallenge === true,
         teamId: player.teamId || "",
+        matchTeam: player.matchTeam || "",
+        matchPlayingHandicap: player.matchPlayingHandicap ?? null,
         lateJoinHole: player.lateJoinHole || null,
         courseHandicap: courseHandicaps[player.id],
         dnf: getPlayerDnfStatus(player)
@@ -1107,6 +1125,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
           playerNames: team.players.map((player) => player.name)
         }))
       },
+      fourBallMatch: getFourBallMatchSummary(),
       totals: finalSummary.playerTotals.map((item) => {
         const exportTotals = getPlayerExportTotals(item.player);
 
@@ -1234,6 +1253,8 @@ window.OGSGolf.state.createRoundState = function createRoundState(
         inPoints: isInPoints(player),
         inTeamChallenge: player.inTeamChallenge === true,
         teamId: player.teamId || "",
+        matchTeam: player.matchTeam || "",
+        matchPlayingHandicap: player.matchPlayingHandicap ?? null,
         lateJoinHole: player.lateJoinHole || null,
         courseHandicap: courseHandicaps[player.id],
         dnf: getPlayerDnfStatus(player)
@@ -1251,6 +1272,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
           playerNames: team.players.map((player) => player.name)
         }))
       },
+      fourBallMatch: getFourBallMatchSummary(),
       totals,
       points: getPointsSummary(),
       netSkins: getSkinSummary()
@@ -1549,6 +1571,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     getStrokesForPlayerOnHole,
     getSkinSummary,
     getTeamChallengeTeams,
+    getFourBallMatchSummary,
     isInSkins,
     isInPoints,
     isPlayerDnf,

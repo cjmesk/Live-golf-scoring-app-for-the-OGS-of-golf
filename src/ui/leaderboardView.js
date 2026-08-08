@@ -5,6 +5,7 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
   const pointsEnabled = roundState.roundSettings.games.pointsGame.enabled;
   const skinsEnabled = roundState.roundSettings.games.netSkins?.enabled === true;
   const totalHoles = roundState.totalHoles || 18;
+  const matchSummary = roundState.getFourBallMatchSummary?.();
 
   function isSavedScore(score) {
     const numericScore = Number(score);
@@ -243,6 +244,27 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
     );
 
   elements.leaderboard.innerHTML = "";
+
+  if (matchSummary?.settings.enabled) {
+    const matchSection = makeSection("Four-Ball Match Play");
+    const teamAPlayers = matchSummary.teams.A.map((player) => player.name).join(" / ");
+    const teamBPlayers = matchSummary.teams.B.map((player) => player.name).join(" / ");
+    const holeRows = matchSummary.holeResults.map((hole) => `
+      <div class="summary-row">
+        <span>Hole ${hole.hole}</span>
+        <strong>${hole.teamAScore} - ${hole.teamBScore}</strong>
+        <small>${hole.winner === "tie" ? "Tied" : `${hole.winner === "A" ? matchSummary.settings.teamALabel : matchSummary.settings.teamBLabel} won`}</small>
+      </div>
+    `).join("");
+    matchSection.innerHTML += `
+      <div class="match-score-card">
+        <div class="summary-card"><span>${matchSummary.settings.teamALabel}</span><strong>${teamAPlayers}</strong></div>
+        <div class="summary-card"><span>${matchSummary.settings.teamBLabel}</span><strong>${teamBPlayers}</strong></div>
+        <div class="summary-card"><span>Match Status</span><strong>${matchSummary.status}</strong><small>${matchSummary.settings.holes} holes | ${matchSummary.settings.scoring === "net" ? `Net, ${matchSummary.settings.allowance}% allowance` : "Gross"}</small></div>
+      </div>
+      <div class="summary-list">${holeRows || '<div class="empty-state">No match holes saved yet.</div>'}</div>
+    `;
+  }
 
   if (pointsStandings.length > 0) {
     const pointsSection = makeSection("Points Leaderboard");

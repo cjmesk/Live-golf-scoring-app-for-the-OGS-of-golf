@@ -2142,3 +2142,49 @@ body.is-scoring .current-hole-status {
     text-align: left;
   }
 }
+.round-type-fieldset {
+  border: 0;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.round-type-option {
+  align-items: flex-start;
+  border: 1px solid var(--border-color, #d7ded7);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.6rem;
+  padding: 0.85rem;
+}
+
+.round-type-option span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.round-type-option small {
+  color: var(--muted-color, #5f6b63);
+}
+
+.round-history-group + .round-history-group {
+  margin-top: 1.5rem;
+}
+
+.match-setup-panel {
+  border-top: 1px solid var(--border-color, #d7ded7);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.match-live-status {
+  font-weight: 800;
+}
+
+.match-score-card {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 1rem;
+}
