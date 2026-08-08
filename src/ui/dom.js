@@ -11,6 +11,7 @@ window.OGSGolf.ui.getElements = function getElements() {
     menuLastRoundResults: document.querySelector("#menuLastRoundResults"),
     adminOnlyItems: document.querySelectorAll(".admin-only"),
     todayScreen: document.querySelector("#todayScreen"),
+    todayTitle: document.querySelector("#todayTitle"),
     todayDate: document.querySelector("#todayDate"),
     todayCourseName: document.querySelector("#todayCourseName"),
     todayEventStatus: document.querySelector("#todayEventStatus"),
