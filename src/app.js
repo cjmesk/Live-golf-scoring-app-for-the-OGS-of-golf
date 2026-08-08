@@ -146,7 +146,8 @@ function setActiveScreen(screenName) {
   elements.aboutScreen.classList.toggle("is-hidden", screenName !== "about");
   document.body.classList.toggle("is-scoring", isScoringScreen);
   elements.modeStatus.classList.toggle("is-hidden", isScoringScreen);
-  elements.rosterCloudStatus.classList.toggle("is-hidden", isScoringScreen || screenName === "today");
+  const showRosterCloudStatus = screenName === "setup" || screenName === "players";
+  elements.rosterCloudStatus.classList.toggle("is-hidden", !showRosterCloudStatus);
   renderAccessMode();
 }
 
