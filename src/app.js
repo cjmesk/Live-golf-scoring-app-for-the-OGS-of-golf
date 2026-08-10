@@ -277,6 +277,13 @@ function renderTodayRoundScreen() {
   elements.choosePlayerScoring.classList.toggle("is-hidden", !hasActiveRound);
   elements.choosePlayerScoring.textContent = "Enter Scores";
   elements.choosePlayerScoring.disabled = !hasActiveRound;
+  elements.todayCommissionerMode.textContent = !hasActiveRound && !completedRound && commissionerMode
+    ? "Start Today's Round"
+    : completedRound && commissionerMode
+    ? "Start Another Round"
+    : commissionerMode
+    ? "Commissioner Dashboard"
+    : "Commissioner Mode";
   elements.todayStatus.textContent = hasActiveRound
     ? "Choose Enter Scores or View Live Leaderboard."
     : completedRound
