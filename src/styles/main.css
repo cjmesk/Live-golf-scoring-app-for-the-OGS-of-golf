@@ -929,6 +929,10 @@ body.is-scoring .current-hole-status {
   background: #eef5ef;
   font-size: 2rem;
   line-height: 1;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .score-value {
