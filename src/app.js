@@ -277,6 +277,12 @@ function renderTodayRoundScreen() {
   elements.choosePlayerScoring.classList.toggle("is-hidden", !hasActiveRound);
   elements.choosePlayerScoring.textContent = "Enter Scores";
   elements.choosePlayerScoring.disabled = !hasActiveRound;
+  elements.todayAddPlayer.classList.toggle("is-hidden", !commissionerMode);
+  elements.todayAddPlayer.disabled = !hasActiveRound;
+  elements.todayAddPlayer.title = hasActiveRound
+    ? "Add a roster player to an active group"
+    : "Start a round before adding a player";
+  if (!commissionerMode || !hasActiveRound) closeLatePlayerForm();
   elements.todayCommissionerMode.textContent = !hasActiveRound && !completedRound && commissionerMode
     ? "Start Today's Round"
     : completedRound && commissionerMode
@@ -999,32 +1005,39 @@ function renderLatePlayerForm() {
   if (!elements.latePlayerPanel) return;
 
   const candidates = getLatePlayerCandidates();
+  const activeGroups = (roundSettings.groups || [])
+    .map((group, index) => ({ group, index, record: getGroupRecord(index) }))
+    .filter(({ index, record }) => !isGroupComplete(index) && record.status !== "completed");
   const teeOptions = (selectedCourse.teeOrder || Object.keys(selectedCourse.tees || {}))
     .map((teeId) => `<option value="${teeId}">${getTeeLabel(teeId)}</option>`)
     .join("");
-  const groupOptions = (roundSettings.groups || [])
-    .map((group, index) => `<option value="${index}">Group ${index + 1}</option>`)
+  const groupOptions = activeGroups
+    .map(({ index, record }) => `<option value="${index}">Group ${index + 1} - joining at Hole ${getLatePlayerJoinHole(index, record)}</option>`)
     .join("");
+  const formAvailable = candidates.length > 0 && activeGroups.length > 0;
 
   elements.latePlayerSelect.innerHTML = candidates.length
     ? candidates.map((player) => `<option value="${player.id}">${escapeText(player.name)}</option>`).join("")
     : `<option value="">No active roster players available</option>`;
-  elements.latePlayerGroupSelect.innerHTML = groupOptions;
+  elements.latePlayerGroupSelect.innerHTML = groupOptions || `<option value="">No active groups available</option>`;
   elements.latePlayerTeeSelect.innerHTML = teeOptions;
-  elements.latePlayerSelect.disabled = candidates.length === 0;
-  elements.latePlayerGroupSelect.disabled = candidates.length === 0;
-  elements.latePlayerTeeSelect.disabled = candidates.length === 0;
-  elements.saveLatePlayer.disabled = candidates.length === 0;
+  elements.latePlayerSelect.disabled = !formAvailable;
+  elements.latePlayerGroupSelect.disabled = !formAvailable;
+  elements.latePlayerTeeSelect.disabled = !formAvailable;
+  elements.saveLatePlayer.disabled = !formAvailable;
   elements.latePlayerSkins.checked = false;
   elements.latePlayerPoints.checked = false;
-  elements.latePlayerStatus.textContent = candidates.length
+  elements.latePlayerStatus.textContent = formAvailable
     ? "Choose the player, group, tee, and games for this round only."
-    : "Every active roster player is already in this round.";
+    : candidates.length === 0
+    ? "Every active roster player is already in this round."
+    : "There are no active groups available.";
 }
 
 function openLatePlayerForm() {
   if (!commissionerMode || !roundState || !roundSettings?.groups?.length) return;
 
+  showTodayRoundScreen();
   renderLatePlayerForm();
   elements.latePlayerPanel.classList.remove("is-hidden");
   elements.latePlayerPanel.scrollIntoView({ behavior: "auto", block: "nearest" });
@@ -1035,7 +1048,14 @@ function closeLatePlayerForm() {
   if (elements.latePlayerStatus) elements.latePlayerStatus.textContent = "";
 }
 
-function buildLateRoundPlayer(member, teeId, inSkins, inPoints) {
+function getLatePlayerJoinHole(groupIndex, groupRecord = getGroupRecord(groupIndex)) {
+  const trackedHoleIndex = Number(groupHoleIndexes[groupIndex]);
+  if (Number.isInteger(trackedHoleIndex) && trackedHoleIndex >= 0) return trackedHoleIndex + 1;
+
+  return Number(groupRecord?.currentHole || groupRecord?.startingHole || 1);
+}
+
+function buildLateRoundPlayer(member, teeId, inSkins, inPoints, groupIndex) {
   const handicapIndex = Number(member.handicapIndex ?? member.handicap ?? 0);
   const courseHandicap = window.OGSGolf.rules.getCourseHandicap(
     {
@@ -1058,7 +1078,7 @@ function buildLateRoundPlayer(member, teeId, inSkins, inPoints) {
     inPoints,
     inTeamChallenge: false,
     teamId: "",
-    lateJoinHole: roundState.currentHoleIndex + 1
+    lateJoinHole: getLatePlayerJoinHole(groupIndex)
   };
 }
 
@@ -1087,7 +1107,8 @@ async function saveLatePlayer() {
     member,
     teeId,
     elements.latePlayerSkins.checked,
-    elements.latePlayerPoints.checked
+    elements.latePlayerPoints.checked,
+    groupIndex
   );
   const preservedRound = roundState.getAutoSaveExport();
   const previousGroupIndex = currentGroupIndex;
@@ -1160,15 +1181,14 @@ async function saveLatePlayer() {
 
   elements.saveLatePlayer.disabled = false;
 
-  if (!rowResult.ok) {
-    elements.latePlayerStatus.textContent = rowResult.message || "Player added locally. Cloud round-player save failed.";
-  } else if (!savedRound?.cloudUpdatedAt) {
-    elements.latePlayerStatus.textContent = "Player added on this device. Cloud active-round save did not confirm.";
-  } else {
-    elements.latePlayerStatus.textContent = `${player.name} added to Group ${groupIndex + 1}.`;
-  }
-
-  renderCommissionerGroupSelection();
+  const successMessage = `${player.name} added to Group ${groupIndex + 1} starting on Hole ${player.lateJoinHole}. Earlier scores were not changed.`;
+  closeLatePlayerForm();
+  renderTodayRoundScreen();
+  elements.todayStatus.textContent = !rowResult.ok
+    ? (rowResult.message || `${successMessage} Cloud round-player save failed.`)
+    : !savedRound?.cloudUpdatedAt
+    ? `${successMessage} Cloud active-round save did not confirm.`
+    : successMessage;
 }
 
 async function showCommissionerGroupSelection({ refresh = true } = {}) {
@@ -3843,6 +3863,7 @@ elements.startFreshRound.addEventListener("click", () => startFreshRound({ clear
 elements.discardSavedRound.addEventListener("click", discardSavedRound);
 elements.viewLiveMatch.addEventListener("click", openTodayRoundPrimaryAction);
 elements.choosePlayerScoring.addEventListener("click", choosePlayerOrScorer);
+elements.todayAddPlayer.addEventListener("click", openLatePlayerForm);
 elements.todayLastRoundResults.addEventListener("click", showPreviousRounds);
 elements.todayCommissionerMode.addEventListener("click", openCommissionerFromToday);
 elements.scorerList.addEventListener("click", (event) => {

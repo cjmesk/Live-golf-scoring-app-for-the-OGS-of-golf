@@ -903,13 +903,35 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     if (matchSummary?.settings.enabled) return matchSummary.complete;
 
     return players.every((player) =>
-      isPlayerDnf(player) || savedScores[player.id].every((score) => score !== null)
+      isPlayerDnf(player) || savedScores[player.id].every((score, holeIndex) =>
+        !isHoleRequiredForPlayer(player, holeIndex) || score !== null
+      )
     );
+  }
+
+  function isHoleRequiredForPlayer(player, holeIndex) {
+    const lateJoinHole = Number(player.lateJoinHole || player.late_join_hole || 0);
+    if (!lateJoinHole) return true;
+
+    const groupIndex = (roundSettings.groups || []).findIndex((group) => group.includes(player.id));
+    const groupRecord = groupIndex >= 0 ? roundSettings.groupRecords?.[groupIndex] : null;
+    const startingHole = Number(groupRecord?.startingHole || groupRecord?.starting_hole || 1);
+    const holesToPlay = Number(groupRecord?.holesToPlay || groupRecord?.holes_to_play || totalHoles);
+    const sequence = Array.from({ length: holesToPlay }, (_, offset) =>
+      ((startingHole - 1 + offset) % totalHoles) + 1
+    );
+    const joinIndex = sequence.indexOf(lateJoinHole);
+    const holeSequenceIndex = sequence.indexOf(holeIndex + 1);
+
+    if (joinIndex < 0 || holeSequenceIndex < 0) return true;
+    return holeSequenceIndex >= joinIndex;
   }
 
   function getLastSavedHoleIndex() {
     for (let index = totalHoles - 1; index >= 0; index -= 1) {
-      const isSaved = players.every((player) => savedScores[player.id][index] !== null);
+      const isSaved = players.every((player) =>
+        !isHoleRequiredForPlayer(player, index) || savedScores[player.id][index] !== null
+      );
 
       if (isSaved) return index;
     }
@@ -919,7 +941,9 @@ window.OGSGolf.state.createRoundState = function createRoundState(
 
   function getLastSavedHoleIndexForPlayers(playersToCheck = players) {
     for (let index = totalHoles - 1; index >= 0; index -= 1) {
-      const isSaved = playersToCheck.every((player) => savedScores[player.id][index] !== null);
+      const isSaved = playersToCheck.every((player) =>
+        !isHoleRequiredForPlayer(player, index) || savedScores[player.id][index] !== null
+      );
 
       if (isSaved) return index;
     }
