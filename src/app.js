@@ -141,7 +141,6 @@ function setActiveScreen(screenName) {
   elements.courseInfoScreen.classList.toggle("is-hidden", screenName !== "courseInfo");
   elements.handicapVerifyScreen.classList.toggle("is-hidden", screenName !== "handicapVerify");
   elements.courseManagementScreen.classList.toggle("is-hidden", screenName !== "courses");
-  elements.betSettingsScreen.classList.toggle("is-hidden", screenName !== "bets");
   elements.helpScreen.classList.toggle("is-hidden", screenName !== "help");
   elements.aboutScreen.classList.toggle("is-hidden", screenName !== "about");
   document.body.classList.toggle("is-scoring", isScoringScreen);
@@ -467,7 +466,7 @@ async function openSetupWizard({ focusTeamSetup = false } = {}) {
   if (roundSettings?.eventStatus === "Started" || roundSettings?.setupLocked) {
     setActiveScreen("round");
     renderApp();
-    elements.modeStatus.textContent = "Round setup is locked because this event has started. Use Edit Round Setup for commissioner-only corrections.";
+    elements.modeStatus.textContent = "Round setup is locked because this event has started. Use Today's Round with Commissioner Mode for corrections.";
     scrollToScoring();
     return;
   }
@@ -788,24 +787,6 @@ async function handleMenuAction(action) {
     return;
   }
 
-  if (action === "editSetup") {
-    if (!commissionerMode) {
-      showAdminRequiredMessage("Turn on Commissioner Mode to edit round setup.");
-      return;
-    }
-
-    if (!roundState) {
-      await openSetupWizard();
-      return;
-    }
-
-    setActiveScreen("round");
-    renderApp();
-    elements.modeStatus.textContent = "Edit Round Setup is commissioner-only. Setup is locked for scorers; make beta corrections from Commissioner View.";
-    scrollToScoring();
-    return;
-  }
-
   if (action === "courseInfo") {
     renderCourseInfo();
     showSimpleScreen("courseInfo");
@@ -835,16 +816,6 @@ async function handleMenuAction(action) {
     }
 
     showSimpleScreen("courses");
-    return;
-  }
-
-  if (action === "bets") {
-    if (!commissionerMode) {
-      showAdminRequiredMessage("Turn on Commissioner Mode to edit bet settings.");
-      return;
-    }
-
-    showSimpleScreen("bets");
     return;
   }
 

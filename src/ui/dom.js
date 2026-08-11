@@ -58,7 +58,6 @@ window.OGSGolf.ui.getElements = function getElements() {
     handicapVerifyResult: document.querySelector("#handicapVerifyResult"),
     handicapVerifyExamples: document.querySelector("#handicapVerifyExamples"),
     courseManagementScreen: document.querySelector("#courseManagementScreen"),
-    betSettingsScreen: document.querySelector("#betSettingsScreen"),
     helpScreen: document.querySelector("#helpScreen"),
     aboutScreen: document.querySelector("#aboutScreen"),
     previousRoundsList: document.querySelector("#previousRoundsList"),
