@@ -14,7 +14,7 @@ if (!stepButtonRule.includes("user-select: none;") || !stepButtonRule.includes("
   throw new Error("Repeated score taps must not select text or open the iOS touch callout.");
 }
 
-if (!htmlSource.includes("src/styles/main.css?v=20260810-mobile-score-controls")) {
+if (!htmlSource.includes("src/styles/main.css?v=20260811-today-add-player")) {
   throw new Error("The mobile score-control CSS fix must use a fresh cache version.");
 }
 

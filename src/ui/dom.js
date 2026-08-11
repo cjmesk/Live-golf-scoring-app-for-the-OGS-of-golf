@@ -20,6 +20,7 @@ window.OGSGolf.ui.getElements = function getElements() {
     todayGroupCount: document.querySelector("#todayGroupCount"),
     viewLiveMatch: document.querySelector("#viewLiveMatch"),
     choosePlayerScoring: document.querySelector("#choosePlayerScoring"),
+    todayAddPlayer: document.querySelector("#todayAddPlayer"),
     todayLastRoundResults: document.querySelector("#todayLastRoundResults"),
     todayCommissionerMode: document.querySelector("#todayCommissionerMode"),
     todayStatus: document.querySelector("#todayStatus"),

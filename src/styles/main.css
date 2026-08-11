@@ -299,6 +299,16 @@ body.is-scoring h1 {
   gap: 10px;
 }
 
+.today-add-player {
+  min-height: 52px;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.today-add-player:disabled {
+  opacity: 0.62;
+}
+
 .score-nav {
   display: grid;
   gap: 10px;

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OG&apos;s Golf</title>
-  <link rel="stylesheet" href="src/styles/main.css?v=20260810-mobile-score-controls">
+  <link rel="stylesheet" href="src/styles/main.css?v=20260811-today-add-player">
 </head>
 <body>
   <header class="app-header">
@@ -103,8 +103,32 @@
       <div class="today-actions">
         <button id="viewLiveMatch" type="button" class="save-button start-button">View Live Leaderboard</button>
         <button id="choosePlayerScoring" type="button" class="secondary-button">Enter Scores</button>
+        <button id="todayAddPlayer" type="button" class="save-button today-add-player is-hidden">+ Add Player</button>
         <button id="todayLastRoundResults" type="button" class="secondary-button">Round History</button>
         <button id="todayCommissionerMode" type="button" class="secondary-button">Commissioner Mode</button>
+      </div>
+      <div id="latePlayerPanel" class="late-player-panel is-hidden">
+        <h3>Add Player to Active Round</h3>
+        <p class="player-details">Choose the active group. The player starts on that group&apos;s current hole; earlier holes stay blank.</p>
+        <label class="field-label" for="latePlayerSelect">Player</label>
+        <select id="latePlayerSelect" class="field-control"></select>
+        <label class="field-label" for="latePlayerGroupSelect">Active Group</label>
+        <select id="latePlayerGroupSelect" class="field-control"></select>
+        <label class="field-label" for="latePlayerTeeSelect">Tee</label>
+        <select id="latePlayerTeeSelect" class="field-control"></select>
+        <label class="toggle-line">
+          <input id="latePlayerSkins" type="checkbox">
+          Skins
+        </label>
+        <label class="toggle-line">
+          <input id="latePlayerPoints" type="checkbox">
+          Points
+        </label>
+        <div class="dnf-confirm-actions">
+          <button id="cancelLatePlayer" type="button" class="secondary-button">Cancel</button>
+          <button id="saveLatePlayer" type="button" class="save-button">Add Player</button>
+        </div>
+        <p id="latePlayerStatus" class="cloud-save-status"></p>
       </div>
       <div id="todayStatus" class="cloud-save-status"></div>
     </section>
@@ -324,28 +348,6 @@
         </div>
         <p class="player-details">Open scoring for any active group or review a group that has already finished.</p>
         <div id="commissionerGroupSelectionList" class="score-override-list"></div>
-        <div id="latePlayerPanel" class="late-player-panel is-hidden">
-          <h3>Add Player to Active Round</h3>
-          <label class="field-label" for="latePlayerSelect">Player</label>
-          <select id="latePlayerSelect" class="field-control"></select>
-          <label class="field-label" for="latePlayerGroupSelect">Group</label>
-          <select id="latePlayerGroupSelect" class="field-control"></select>
-          <label class="field-label" for="latePlayerTeeSelect">Tee</label>
-          <select id="latePlayerTeeSelect" class="field-control"></select>
-          <label class="toggle-line">
-            <input id="latePlayerSkins" type="checkbox">
-            Skins
-          </label>
-          <label class="toggle-line">
-            <input id="latePlayerPoints" type="checkbox">
-            Points
-          </label>
-          <div class="dnf-confirm-actions">
-            <button id="cancelLatePlayer" type="button" class="secondary-button">Cancel</button>
-            <button id="saveLatePlayer" type="button" class="save-button">Add Player</button>
-          </div>
-          <p id="latePlayerStatus" class="cloud-save-status"></p>
-        </div>
         <div class="completed-group-actions">
           <button id="commissionerGroupSelectionLeaderboard" type="button" class="secondary-button">View Leaderboard</button>
           <button id="commissionerGroupSelectionDashboard" type="button" class="secondary-button">Commissioner Dashboard</button>
@@ -670,13 +672,13 @@
   <script src="src/rules/skins.js?v=20260709-v098-menu"></script>
   <script src="src/state/playerStorage.js?v=20260709-v098-menu"></script>
   <script src="src/state/scorerStorage.js?v=20260711-device-scorer"></script>
-  <script src="src/state/roundState.js?v=20260808-four-ball-match"></script>
+  <script src="src/state/roundState.js?v=20260811-late-player-progress"></script>
   <script src="src/state/roundStorage.js?v=20260807-mobile-cache-guard"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/roundCloudService.js?v=20260807-completed-round-loader"></script>
-  <script src="src/ui/dom.js?v=20260808-status-aware-today"></script>
+  <script src="src/ui/dom.js?v=20260811-today-add-player"></script>
   <script src="src/ui/formatters.js?v=20260710-index-course-handicap"></script>
   <script src="src/ui/setupView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/holeView.js?v=20260808-four-ball-match"></script>
@@ -689,6 +691,6 @@
   <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
   <script src="src/ui/groupSetupView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/eventSummaryView.js?v=20260808-four-ball-match"></script>
-  <script src="src/app.js?v=20260810-commissioner-start-action"></script>
+  <script src="src/app.js?v=20260811-today-add-player"></script>
 </body>
 </html>
