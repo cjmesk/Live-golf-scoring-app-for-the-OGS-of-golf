@@ -1180,15 +1180,30 @@ async function showCommissionerGroupSelection({ refresh = true } = {}) {
 async function openCommissionerGroup(groupIndex) {
   if (!commissionerMode || !roundSettings?.groups?.length) return;
 
+  const targetGroupIndex = Math.max(0, Math.min(roundSettings.groups.length - 1, groupIndex));
+
+  // Open the locally loaded group immediately. Cloud refreshes are useful for
+  // bringing in other scorers' changes, but mobile scoring navigation must not
+  // be blocked by a slow or unavailable request.
+  goToGroup(targetGroupIndex);
+
   if (roundState?.id) {
     elements.liveRefreshStatus.textContent = "Loading selected group from cloud...";
     const refreshResult = await applyCloudScoreStateForActiveRound(roundState.id);
     elements.liveRefreshStatus.textContent = refreshResult.ok
-      ? `Group ${groupIndex + 1} loaded.`
+      ? `Group ${targetGroupIndex + 1} loaded.`
       : (refreshResult.message || "Cloud load failed. Showing this device's saved copy.");
-  }
 
-  goToGroup(groupIndex);
+    // Refresh the visible hole only if the user is still scoring the group they
+    // tapped. Do not pull them back if they navigated elsewhere while awaiting.
+    if (
+      currentGroupIndex === targetGroupIndex
+      && !elements.roundScreen.classList.contains("is-leaderboard-view")
+      && !elements.roundScreen.classList.contains("is-commissioner-group-selection")
+    ) {
+      renderApp();
+    }
+  }
 }
 
 function mergeRoster(localPlayers, cloudPlayers) {
@@ -2150,6 +2165,7 @@ function goToGroup(nextGroupIndex) {
   if (!commissionerMode && roundSettings.groupScorers?.[nextGroupIndex] !== currentScorerId) return;
 
   hideCommissionerGroupSelection();
+  elements.roundScreen.classList.remove("is-leaderboard-view");
   const previousGroupIndex = currentGroupIndex;
   currentGroupIndex = Math.max(0, Math.min(roundSettings.groups.length - 1, nextGroupIndex));
   if (currentGroupIndex !== previousGroupIndex) {
@@ -2212,7 +2228,9 @@ function showScoreMyGroup() {
   if (!roundState) return;
 
   if (commissionerMode) {
-    showCommissionerGroupSelection({ refresh: false });
+    // Commissioner Mode can still choose another group through Manage Current
+    // Round, but Score My Group resumes the active group at its saved hole.
+    goToGroup(currentGroupIndex);
     return;
   }
 

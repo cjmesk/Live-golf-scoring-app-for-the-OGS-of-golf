@@ -1068,8 +1068,32 @@ window.OGSGolf.state.createRoundState = function createRoundState(
 
   function getFourBallMatchSummary() {
     if (!window.OGSGolf.rules.fourBallMatch) return null;
+
+    // Match assignments are round-specific metadata and are not columns in the
+    // live round_players score feed. Rehydrate them from the durable round
+    // snapshot whenever the active player objects came from that detail feed.
+    const savedMatchTeams = savedRound?.fourBallMatch?.teams || {};
+    const savedPlayingHandicaps = savedRound?.fourBallMatch?.playingHandicaps || {};
+    const settingsPlayers = roundSettings.players || [];
+    const matchPlayers = players.map((player) => {
+      const settingsPlayer = settingsPlayers.find((item) => item.id === player.id) || {};
+      const savedTeam = ["A", "B"].find((teamId) =>
+        (savedMatchTeams[teamId] || []).some((item) => (item.id || item.playerId) === player.id)
+      ) || "";
+
+      return {
+        ...settingsPlayer,
+        ...player,
+        matchTeam: player.matchTeam || settingsPlayer.matchTeam || savedTeam,
+        matchPlayingHandicap: player.matchPlayingHandicap
+          ?? settingsPlayer.matchPlayingHandicap
+          ?? savedPlayingHandicaps[player.id]
+          ?? null
+      };
+    });
+
     return window.OGSGolf.rules.fourBallMatch.getSummary({
-      players,
+      players: matchPlayers,
       savedScores,
       course,
       courseHandicaps,
