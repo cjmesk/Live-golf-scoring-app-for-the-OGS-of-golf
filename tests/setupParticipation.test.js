@@ -37,6 +37,7 @@ const elements = {
     selectedMemberIds: new Set(["player-a", "player-b"]),
     teeOverrides: new Map(),
     pointsParticipation: new Map([["player-a", true]]),
+    groupAssignments: new Map([["player-a", 2], ["player-b", 1]]),
     rows: [],
     appendChild(row) {
       this.rows.push(row);
@@ -66,6 +67,9 @@ const playerB = settings.players.find((player) => player.id === "player-b");
 assertEqual(playerA.inPoints, true, "Selected player checked into Points Game");
 assertEqual(playerB.inPoints, false, "Selected player not checked into Points Game");
 assertEqual(settings.games.pointsGame.enabled, true, "Points Game enabled when at least one player is checked in");
+assertEqual(settings.groups.length, 2, "Setup creates the selected groups");
+assertEqual(settings.groups[0][0], "player-b", "Player B stays in Group 1");
+assertEqual(settings.groups[1][0], "player-a", "Player A stays in Group 2");
 
 elements.memberList.pointsParticipation = new Map();
 const settingsWithoutPoints = window.OGSGolf.ui.readSetupSettings(elements, courses, members);
@@ -74,3 +78,4 @@ assertEqual(settingsWithoutPoints.players.every((player) => player.inPoints === 
 assertEqual(settingsWithoutPoints.games.pointsGame.enabled, false, "Points Game disabled when no players are checked in");
 
 console.log("Setup participation test passed.");
+
