@@ -48,12 +48,14 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
   const skinsParticipation = elements.memberList.skinsParticipation || new Map();
   const matchTeams = elements.memberList.matchTeams || new Map();
   const manualMatchHandicaps = elements.memberList.manualMatchHandicaps || new Map();
+  const groupAssignments = elements.memberList.groupAssignments || new Map();
   elements.memberList.selectedMemberIds = selectedMemberIds;
   elements.memberList.teeOverrides = teeOverrides;
   elements.memberList.pointsParticipation = pointsParticipation;
   elements.memberList.skinsParticipation = skinsParticipation;
   elements.memberList.matchTeams = matchTeams;
   elements.memberList.manualMatchHandicaps = manualMatchHandicaps;
+  elements.memberList.groupAssignments = groupAssignments;
   elements.gameList.innerHTML = "";
   elements.teamAssignmentPanel.classList.add("is-hidden");
   elements.teamAssignmentList.innerHTML = "";
@@ -92,6 +94,8 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
       const isInSkinsGame = isPlayingToday && skinsParticipation.get(member.id) === true;
       const selectedTeeId = getValidCourseTeeId(selectedCourse, teeOverrides.get(member.id) || member.tee);
       const selectedIndex = Array.from(selectedMemberIds).indexOf(member.id);
+      const defaultGroupNumber = Math.min(8, Math.floor(Math.max(0, selectedIndex) / 4) + 1);
+      const groupNumber = Math.max(1, Math.min(8, Number(groupAssignments.get(member.id) || defaultGroupNumber)));
       const defaultTeam = selectedIndex >= 2 ? "B" : "A";
       const matchTeam = matchTeams.get(member.id) || defaultTeam;
       const row = document.createElement("div");
@@ -112,6 +116,16 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
             `).join("")}
           </select>
         </label>
+        ${isPlayingToday ? `
+          <label class="tee-select-label">
+            <span>Playing Group</span>
+            <select class="field-control" data-group-for="${member.id}">
+              ${Array.from({ length: 8 }, (_, groupIndex) => groupIndex + 1)
+                .map((number) => `<option value="${number}"${number === groupNumber ? " selected" : ""}>Group ${number}</option>`)
+                .join("")}
+            </select>
+          </label>
+        ` : ""}
         <label class="member-game-check">
           <input type="checkbox" data-points-for="${member.id}"${isInPointsGame ? " checked" : ""}${isPlayingToday ? "" : " disabled"}>
           <span>Points Game</span>
@@ -152,6 +166,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
     const skinsCheckbox = event.target.closest("[data-skins-for]");
     const matchTeamSelect = event.target.closest("[data-match-team-for]");
     const matchHandicapInput = event.target.closest("[data-match-handicap-for]");
+    const groupSelect = event.target.closest("[data-group-for]");
 
     if (checkbox?.checked) {
       selectedMemberIds.add(checkbox.dataset.memberId);
@@ -161,6 +176,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
       skinsParticipation.delete(checkbox.dataset.memberId);
       matchTeams.delete(checkbox.dataset.memberId);
       manualMatchHandicaps.delete(checkbox.dataset.memberId);
+      groupAssignments.delete(checkbox.dataset.memberId);
     }
 
     if (teeSelect) {
@@ -177,6 +193,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
 
     if (matchTeamSelect) matchTeams.set(matchTeamSelect.dataset.matchTeamFor, matchTeamSelect.value);
     if (matchHandicapInput) manualMatchHandicaps.set(matchHandicapInput.dataset.matchHandicapFor, Number(matchHandicapInput.value));
+    if (groupSelect) groupAssignments.set(groupSelect.dataset.groupFor, Number(groupSelect.value));
 
     updateSelectedCount();
     if (checkbox) {
@@ -213,6 +230,7 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
   const skinsParticipation = elements.memberList.skinsParticipation || new Map();
   const matchTeams = elements.memberList.matchTeams || new Map();
   const manualMatchHandicaps = elements.memberList.manualMatchHandicaps || new Map();
+  const groupAssignments = elements.memberList.groupAssignments || new Map();
   const roundDate = elements.roundDate.value || getTodayInputValue();
   const enteredRoundName = elements.roundName.value.trim();
   const roundName = enteredRoundName || `${course.name} - ${roundDate}`;
@@ -244,8 +262,17 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
       matchTeam: format === "four-ball-match" ? (matchTeams.get(member.id) || (selectedIndex < 2 ? "A" : "B")) : "",
       matchPlayingHandicap: format === "four-ball-match" && fourBallMatch.handicapSource === "manual"
         ? Number(manualMatchHandicaps.get(member.id) ?? member.courseHandicap ?? member.handicap ?? 0)
-        : null
+        : null,
+      setupGroupNumber: format === "four-ball-match"
+        ? 1
+        : Math.max(1, Math.min(8, Number(groupAssignments.get(member.id) || Math.floor(selectedIndex / 4) + 1)))
     }));
+  const setupGroupCount = format === "four-ball-match"
+    ? 1
+    : Math.max(1, ...selectedPlayers.map((player) => player.setupGroupNumber));
+  const setupGroups = Array.from({ length: setupGroupCount }, () => []);
+  selectedPlayers.forEach((player) => setupGroups[player.setupGroupNumber - 1].push(player.id));
+  const assignedGroups = setupGroups.filter((group) => group.length > 0);
   const hasPointsPlayers = selectedPlayers.some((player) => player.inPoints === true);
   const hasSkinsPlayers = selectedPlayers.some((player) => player.inSkins === true);
   const games = createDisabledGames();
@@ -268,7 +295,8 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
     players: selectedPlayers,
     selectedPlayerIds: selectedPlayers.map((player) => player.id),
     teamAssignments: {},
-    groups: [],
+    groups: assignedGroups,
+    groupCount: assignedGroups.length,
     groupScorers: [],
     groupRecords: [],
     startingHole: 1,
@@ -297,3 +325,4 @@ window.OGSGolf.ui.renderRoundSettingsSummary = function renderRoundSettingsSumma
     </div>
   `;
 };
+
