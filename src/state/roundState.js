@@ -1406,6 +1406,48 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     applyCloudHoleScores(scoreRows);
   }
 
+  function updateRoundPlayerParticipation(playerId, participation = {}) {
+    const player = players.find((item) => item.id === playerId);
+
+    if (!player) return null;
+
+    const previousInPoints = isInPoints(player);
+    const previousInSkins = isInSkins(player);
+    const inPoints = participation.inPoints === true;
+    const inSkins = participation.inSkins === true;
+
+    player.inPoints = inPoints;
+    player.inSkins = inSkins;
+
+    if (Array.isArray(roundSettings.players)) {
+      roundSettings.players = roundSettings.players.map((item) =>
+        item.id === playerId ? { ...item, inPoints, inSkins } : item
+      );
+    }
+
+    roundSettings.games = roundSettings.games || {};
+    roundSettings.games.pointsGame = {
+      ...(roundSettings.games.pointsGame || {}),
+      enabled: players.some((item) => isInPoints(item))
+    };
+    roundSettings.games.netSkins = {
+      ...(roundSettings.games.netSkins || {}),
+      enabled: players.some((item) => isInSkins(item))
+    };
+
+    recalculateSkins();
+    loadDraftScores();
+
+    return {
+      player,
+      previousInPoints,
+      previousInSkins,
+      inPoints,
+      inSkins,
+      payoutSummary: buildFreshPayoutSummary()
+    };
+  }
+
   function updateRoundPlayerHandicap(playerId, handicapIndex) {
     const player = players.find((item) => item.id === playerId);
     const newHandicapIndex = Number(handicapIndex);
@@ -1481,6 +1523,14 @@ window.OGSGolf.state.createRoundState = function createRoundState(
 
       if (row.tee) player.tee = row.tee;
 
+      if (row.points_enabled !== undefined) {
+        player.inPoints = row.points_enabled === true;
+      }
+
+      if (row.skins_enabled !== undefined) {
+        player.inSkins = row.skins_enabled === true;
+      }
+
       if (Number.isFinite(handicapIndex)) {
         player.handicap = handicapIndex;
         player.handicapIndex = handicapIndex;
@@ -1496,6 +1546,25 @@ window.OGSGolf.state.createRoundState = function createRoundState(
 
       rebuildSavedHoleResultForPlayer(player);
     });
+
+    if (Array.isArray(roundSettings.players)) {
+      roundSettings.players = roundSettings.players.map((roundPlayer) => {
+        const player = players.find((item) => item.id === roundPlayer.id);
+        return player
+          ? { ...roundPlayer, inPoints: isInPoints(player), inSkins: isInSkins(player) }
+          : roundPlayer;
+      });
+    }
+
+    roundSettings.games = roundSettings.games || {};
+    roundSettings.games.pointsGame = {
+      ...(roundSettings.games.pointsGame || {}),
+      enabled: players.some((item) => isInPoints(item))
+    };
+    roundSettings.games.netSkins = {
+      ...(roundSettings.games.netSkins || {}),
+      enabled: players.some((item) => isInSkins(item))
+    };
 
     recalculateSkins();
     loadDraftScores();
@@ -1634,6 +1703,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     saveCurrentHole,
     applyCloudHoleScores,
     replaceSavedScoresFromCloud,
+    updateRoundPlayerParticipation,
     updateRoundPlayerHandicap,
     updateRoundPlayerTee,
     applyCloudRoundPlayers,

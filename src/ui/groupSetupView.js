@@ -29,6 +29,12 @@ function getExistingGroupNumber(playerId, groups) {
   return groupIndex >= 0 ? groupIndex + 1 : null;
 }
 
+function formatGroupHandicapIndex(value) {
+  return window.OGSGolf.ui.formatHandicapIndex
+    ? window.OGSGolf.ui.formatHandicapIndex(value)
+    : String(value);
+}
+
 window.OGSGolf.ui.renderGroupSetupView = function renderGroupSetupView(elements, roundSettings) {
   const players = roundSettings.players;
   const isFourBallMatch = roundSettings.format === "four-ball-match";
@@ -61,7 +67,7 @@ window.OGSGolf.ui.renderGroupSetupView = function renderGroupSetupView(elements,
         <div class="member-row">
           <div>
             <strong>${player.name}</strong>
-            <span class="player-details">${player.tee} tees | Index ${player.handicap}</span>
+            <span class="player-details">${player.tee} tees | Index ${formatGroupHandicapIndex(player.handicap)}</span>
           </div>
           <label class="tee-select-label">
             <span>Group</span>

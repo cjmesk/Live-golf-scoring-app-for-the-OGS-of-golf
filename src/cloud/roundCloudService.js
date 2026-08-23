@@ -395,7 +395,10 @@ window.OGSGolf.cloud.roundCloudService = {
       player_id: player.id,
       tee: player.tee,
       handicap_index: player.handicapIndex,
-      course_handicap: player.courseHandicap
+      course_handicap: player.courseHandicap,
+      playing: player.playing !== false,
+      skins_enabled: player.inSkins === true,
+      points_enabled: player.inPoints === true
     }));
     const holeScores = roundData.holeByHole.flatMap((hole) =>
       hole.scores.map((score) => ({

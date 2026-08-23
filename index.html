@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OG&apos;s Golf</title>
-  <link rel="stylesheet" href="src/styles/main.css?v=20260811-today-add-player">
+  <link rel="stylesheet" href="src/styles/main.css?v=20260823-game-participation">
 </head>
 <body>
   <header class="app-header">
@@ -104,6 +104,7 @@
         <button id="viewLiveMatch" type="button" class="save-button start-button">View Live Leaderboard</button>
         <button id="choosePlayerScoring" type="button" class="secondary-button">Enter Scores</button>
         <button id="todayAddPlayer" type="button" class="save-button today-add-player is-hidden">+ Add Player</button>
+        <button id="todayEditGames" type="button" class="secondary-button is-hidden">Edit Points &amp; Skins</button>
         <button id="todayLastRoundResults" type="button" class="secondary-button">Round History</button>
         <button id="todayCommissionerMode" type="button" class="secondary-button">Commissioner Mode</button>
       </div>
@@ -129,6 +130,26 @@
           <button id="saveLatePlayer" type="button" class="save-button">Add Player</button>
         </div>
         <p id="latePlayerStatus" class="cloud-save-status"></p>
+      </div>
+      <div id="gameParticipationPanel" class="late-player-panel is-hidden">
+        <h3>Edit Points &amp; Skins</h3>
+        <p class="player-details">The golfer stays in the round. Their scores, foursome, tee, and handicap will not change.</p>
+        <label class="field-label" for="gameParticipationPlayer">Player</label>
+        <select id="gameParticipationPlayer" class="field-control"></select>
+        <label class="toggle-line">
+          <input id="gameParticipationPoints" type="checkbox">
+          Playing Points
+        </label>
+        <label class="toggle-line">
+          <input id="gameParticipationSkins" type="checkbox">
+          Playing Skins
+        </label>
+        <p id="gameParticipationPreview" class="player-details">Changes apply to the entire round. Money, winners, and payouts recalculate automatically.</p>
+        <div class="dnf-confirm-actions">
+          <button id="cancelGameParticipation" type="button" class="secondary-button">Cancel</button>
+          <button id="saveGameParticipation" type="button" class="save-button">Save &amp; Recalculate</button>
+        </div>
+        <p id="gameParticipationStatus" class="cloud-save-status"></p>
       </div>
       <div id="todayStatus" class="cloud-save-status"></div>
     </section>
@@ -392,7 +413,8 @@
           <span>Current Course Handicap: <strong id="currentCourseHandicap">0</strong></span>
         </div>
         <label class="field-label" for="newHandicapIndex">New GHIN Index</label>
-        <input id="newHandicapIndex" class="field-control" type="number" inputmode="decimal" step="0.1" min="-10" max="54">
+        <input id="newHandicapIndex" class="field-control" type="text" inputmode="decimal" placeholder="12.2 or +1.4">
+        <span class="player-details">For a plus golfer, enter the index with a plus sign—for example, +1.4.</span>
         <div class="dnf-confirm-actions">
           <button id="cancelHandicapAdjust" type="button" class="secondary-button">Cancel</button>
           <button id="saveHandicapAdjust" type="button" class="save-button">Save</button>
@@ -554,7 +576,8 @@
         <input id="playerGhin" class="field-control" type="text" inputmode="numeric">
 
         <label class="field-label" for="playerHandicap">Handicap Index</label>
-        <input id="playerHandicap" class="field-control" type="number" step="0.1" required>
+        <input id="playerHandicap" class="field-control" type="text" inputmode="decimal" placeholder="12.2 or +1.4" required>
+        <span class="player-details">For a plus golfer, enter the index with a plus sign—for example, +1.4.</span>
 
         <label class="field-label" for="playerTee">Preferred Tee</label>
         <select id="playerTee" class="field-control">
@@ -667,20 +690,20 @@
   <script src="src/data/course.js?v=20260731-park-mammoth"></script>
   <script src="src/data/players.js?v=20260709-v098-menu"></script>
   <script src="src/rules/points.js?v=20260714-chicago-points"></script>
-  <script src="src/rules/handicap.js?v=20260728-round-handicap-source"></script>
+  <script src="src/rules/handicap.js?v=20260823-plus-handicap"></script>
   <script src="src/rules/fourBallMatch.js?v=20260808-four-ball-match"></script>
   <script src="src/rules/skins.js?v=20260709-v098-menu"></script>
   <script src="src/state/playerStorage.js?v=20260709-v098-menu"></script>
   <script src="src/state/scorerStorage.js?v=20260711-device-scorer"></script>
-  <script src="src/state/roundState.js?v=20260812-match-navigation-state"></script>
+  <script src="src/state/roundState.js?v=20260823-game-participation"></script>
   <script src="src/state/roundStorage.js?v=20260807-mobile-cache-guard"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
-  <script src="src/cloud/roundCloudService.js?v=20260807-completed-round-loader"></script>
-  <script src="src/ui/dom.js?v=20260811-today-add-player"></script>
-  <script src="src/ui/formatters.js?v=20260710-index-course-handicap"></script>
-  <script src="src/ui/setupView.js?v=20260808-four-ball-match"></script>
+  <script src="src/cloud/roundCloudService.js?v=20260823-game-participation"></script>
+  <script src="src/ui/dom.js?v=20260823-game-participation"></script>
+  <script src="src/ui/formatters.js?v=20260823-plus-handicap"></script>
+  <script src="src/ui/setupView.js?v=20260823-pre-round-foursomes"></script>
   <script src="src/ui/holeView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/leaderboardView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/pointsPayoutView.js?v=20260710-points-quota"></script>
@@ -688,9 +711,9 @@
   <script src="src/ui/finalSummaryView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/playerScorecardView.js?v=20260803-scorecard-totals"></script>
   <script src="src/ui/previousRoundsView.js?v=20260808-latest-round-card"></script>
-  <script src="src/ui/playerManagementView.js?v=20260711-cloud-roster-save"></script>
-  <script src="src/ui/groupSetupView.js?v=20260808-four-ball-match"></script>
+  <script src="src/ui/playerManagementView.js?v=20260823-plus-handicap"></script>
+  <script src="src/ui/groupSetupView.js?v=20260823-pre-round-foursomes"></script>
   <script src="src/ui/eventSummaryView.js?v=20260808-four-ball-match"></script>
-  <script src="src/app.js?v=20260812-match-navigation-state"></script>
+  <script src="src/app.js?v=20260823-game-participation"></script>
 </body>
 </html>

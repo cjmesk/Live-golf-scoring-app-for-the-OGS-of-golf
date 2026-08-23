@@ -27,7 +27,19 @@ window.OGSGolf.rules.getCourseHandicap = function getCourseHandicap(player, cour
 };
 
 window.OGSGolf.rules.getStrokesOnHole = function getStrokesOnHole(courseHandicap, holeHandicap) {
-  if (courseHandicap <= 0) return 0;
+  if (courseHandicap === 0) return 0;
+
+  if (courseHandicap < 0) {
+    // A plus Course Handicap adds strokes to the player's net score, beginning
+    // with the hole ranked 18, then 17, and so on. Negative strokesReceived
+    // makes getNetScore add the stroke instead of subtracting it.
+    const strokesToAdd = Math.abs(courseHandicap);
+    const fullRounds = Math.floor(strokesToAdd / 18);
+    const extraStrokes = strokesToAdd % 18;
+    const receivesExtraPenalty = extraStrokes > 0 && holeHandicap > 18 - extraStrokes;
+
+    return -(fullRounds + (receivesExtraPenalty ? 1 : 0));
+  }
 
   // Handicap holes are ranked 1 through 18. A player with a Course Handicap of
   // 12 gets one stroke on holes ranked 1 through 12. A player with a Course

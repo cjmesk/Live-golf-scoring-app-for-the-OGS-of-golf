@@ -33,6 +33,12 @@ function getValidCourseTeeId(course, teeId) {
   return course.teeOrder[0];
 }
 
+function formatSetupHandicapIndex(value) {
+  return window.OGSGolf.ui.formatHandicapIndex
+    ? window.OGSGolf.ui.formatHandicapIndex(value)
+    : String(value);
+}
+
 window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, members) {
   elements.courseSelect.innerHTML = courses
     .map((course) => `<option value="${course.id}">${course.name}</option>`)
@@ -105,7 +111,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
           <input type="checkbox" data-member-id="${member.id}"${isPlayingToday ? " checked" : ""}>
           <span>
             <strong>${member.name}</strong>
-            <span>${member.ghin ? `GHIN ${member.ghin}` : "No GHIN"} | Index ${member.handicap} | Default ${member.tee} tees</span>
+            <span>${member.ghin ? `GHIN ${member.ghin}` : "No GHIN"} | Index ${formatSetupHandicapIndex(member.handicap)} | Default ${member.tee} tees</span>
           </span>
         </label>
         <label class="tee-select-label">
@@ -325,4 +331,3 @@ window.OGSGolf.ui.renderRoundSettingsSummary = function renderRoundSettingsSumma
     </div>
   `;
 };
-
