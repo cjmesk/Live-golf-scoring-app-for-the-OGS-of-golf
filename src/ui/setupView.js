@@ -49,6 +49,26 @@ function parseSetupHandicapIndex(value) {
   return text.startsWith("+") ? -Math.abs(numericValue) : numericValue;
 }
 
+window.OGSGolf.ui.getSuggestedSetupGroup = function getSuggestedSetupGroup(selectedMemberIds, groupAssignments, newPlayerId) {
+  const existingGroupCount = Math.max(
+    1,
+    ...Array.from(selectedMemberIds)
+      .filter((playerId) => playerId !== newPlayerId)
+      .map((playerId) => Number(groupAssignments.get(playerId) || 1))
+  );
+  const groupCount = Math.max(existingGroupCount, Math.ceil(selectedMemberIds.size / 4));
+  const groupSizes = Array.from({ length: groupCount }, () => 0);
+
+  selectedMemberIds.forEach((playerId) => {
+    if (playerId === newPlayerId) return;
+    const groupNumber = Math.max(1, Math.min(groupCount, Number(groupAssignments.get(playerId) || 1)));
+    groupSizes[groupNumber - 1] += 1;
+  });
+
+  const smallestGroupSize = Math.min(...groupSizes);
+  return groupSizes.findIndex((size) => size === smallestGroupSize) + 1;
+};
+
 window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, members) {
   elements.courseSelect.innerHTML = courses
     .map((course) => `<option value="${course.id}">${course.name}</option>`)
@@ -194,6 +214,16 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
 
     if (checkbox?.checked) {
       selectedMemberIds.add(checkbox.dataset.memberId);
+      if (!groupAssignments.has(checkbox.dataset.memberId)) {
+        groupAssignments.set(
+          checkbox.dataset.memberId,
+          window.OGSGolf.ui.getSuggestedSetupGroup(
+            selectedMemberIds,
+            groupAssignments,
+            checkbox.dataset.memberId
+          )
+        );
+      }
     } else if (checkbox) {
       selectedMemberIds.delete(checkbox.dataset.memberId);
       pointsParticipation.delete(checkbox.dataset.memberId);
