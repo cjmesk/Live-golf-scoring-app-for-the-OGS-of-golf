@@ -81,6 +81,18 @@ assertEqual(elements.memberList.selectedMemberIds.size, 2, "Returning to setup r
 assertEqual(elements.memberList.groupAssignments.get("player-a"), 2, "Returning to setup restores Player A's foursome");
 assertEqual(elements.memberList.groupAssignments.get("player-b"), 1, "Returning to setup restores Player B's foursome");
 
+const elevenPlayers = new Set(Array.from({ length: 11 }, (_, index) => `player-${index + 1}`));
+const elevenPlayerGroups = new Map(Array.from(elevenPlayers).map((playerId, index) => [
+  playerId,
+  index < 4 ? 1 : index < 8 ? 2 : 3
+]));
+elevenPlayers.add("ronnie-holton");
+assertEqual(
+  window.OGSGolf.ui.getSuggestedSetupGroup(elevenPlayers, elevenPlayerGroups, "ronnie-holton"),
+  3,
+  "The twelfth player fills the open spot in Group 3"
+);
+
 elements.memberList.pointsParticipation = new Map();
 const settingsWithoutPoints = window.OGSGolf.ui.readSetupSettings(elements, courses, members);
 
