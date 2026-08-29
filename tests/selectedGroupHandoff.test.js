@@ -53,4 +53,15 @@ if (selectedGroupFor("ben") !== 1 || selectedGroupFor("dave") !== 1) {
   throw new Error("Players selected for Group 1 must arrive in Group 1 on Build Foursomes.");
 }
 
+const savedAssignments = new Map();
+const rememberedGroups = context.window.OGSGolf.ui.rememberGroupAssignments(elements, players, savedAssignments);
+
+if (JSON.stringify(rememberedGroups) !== JSON.stringify([["ben", "dave"], ["alan", "chris"]])) {
+  throw new Error("Foursomes must be captured before returning to Round Setup.");
+}
+
+if (savedAssignments.get("alan") !== 2 || savedAssignments.get("ben") !== 1) {
+  throw new Error("Returning to Round Setup must preserve each player's foursome for adding another player.");
+}
+
 console.log("Selected setup groups carry into Build Foursomes test passed.");
