@@ -7,6 +7,7 @@ const {
   fillPlayerForm,
   formatHandicapIndex,
   getElements,
+  rememberGroupAssignments,
   readSetupSettings,
   readGroupAssignments,
   readGroupPlaySettings,
@@ -3703,6 +3704,21 @@ function continueToGroups() {
 }
 
 function backToRoundSetup() {
+  if (pendingRoundSettings) {
+    const groupAssignments = elements.memberList.groupAssignments || new Map();
+    const groups = rememberGroupAssignments(
+      elements,
+      pendingRoundSettings.players,
+      groupAssignments
+    );
+    elements.memberList.groupAssignments = groupAssignments;
+    pendingRoundSettings.groups = groups;
+    pendingRoundSettings.groupCount = Math.max(
+      elements.groupSetupList.groupCount || 0,
+      groups.length,
+      1
+    );
+  }
   setActiveScreen("setup");
   scrollToTop();
 }
