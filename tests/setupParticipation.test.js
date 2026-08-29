@@ -74,6 +74,13 @@ assertEqual(settings.groups.length, 2, "Setup creates the selected groups");
 assertEqual(settings.groups[0][0], "player-b", "Player B stays in Group 1");
 assertEqual(settings.groups[1][0], "player-a", "Player A stays in Group 2");
 
+elements.memberList.selectedMemberIds = new Set();
+elements.memberList.groupAssignments = new Map();
+window.OGSGolf.ui.restoreSetupSelections(elements, settings);
+assertEqual(elements.memberList.selectedMemberIds.size, 2, "Returning to setup restores every selected player");
+assertEqual(elements.memberList.groupAssignments.get("player-a"), 2, "Returning to setup restores Player A's foursome");
+assertEqual(elements.memberList.groupAssignments.get("player-b"), 1, "Returning to setup restores Player B's foursome");
+
 elements.memberList.pointsParticipation = new Map();
 const settingsWithoutPoints = window.OGSGolf.ui.readSetupSettings(elements, courses, members);
 
