@@ -27,6 +27,7 @@ const {
   renderPreviousRounds,
   renderRoundSettingsSummary,
   renderSetupView,
+  restoreSetupSelections,
   renderSkinsSummary
 } = window.OGSGolf.ui;
 
@@ -3718,6 +3719,10 @@ function backToRoundSetup() {
       groups.length,
       1
     );
+    restoreSetupSelections(elements, pendingRoundSettings);
+    renderSetupView(elements, courses, members);
+    elements.courseSelect.value = pendingRoundSettings.courseId || pendingRoundSettings.course?.id || elements.courseSelect.value;
+    elements.courseSelect.onchange?.();
   }
   setActiveScreen("setup");
   scrollToTop();
