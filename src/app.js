@@ -5,12 +5,14 @@ const { getHoleResult } = window.OGSGolf.rules;
 const {
   clearPlayerForm,
   fillPlayerForm,
+  formatHandicapIndex,
   getElements,
   readSetupSettings,
   readGroupAssignments,
   readGroupPlaySettings,
   readGroupScorers,
   readPlayerForm,
+  parseHandicapIndex,
   renderCompletedScorecard,
   renderFinalSummary,
   renderEventSummary,
@@ -281,12 +283,18 @@ function renderTodayRoundScreen() {
   elements.todayAddPlayer.title = hasActiveRound
     ? "Add a roster player to an active group"
     : "Start a round before adding a player";
-  if (!commissionerMode || !hasActiveRound) closeLatePlayerForm();
   elements.todayChangeGroups.classList.toggle("is-hidden", !commissionerMode);
   elements.todayChangeGroups.disabled = !hasActiveRound || (roundSettings?.groups?.length || 0) < 2;
   elements.todayChangeGroups.title = hasActiveRound
     ? "Move players between active groups without changing scores"
     : "Start a round before changing groups";
+  elements.todayEditGames.classList.toggle("is-hidden", !commissionerMode);
+  elements.todayEditGames.disabled = !hasActiveRound;
+  elements.todayEditGames.title = hasActiveRound
+    ? "Change a player's Points and Skins participation"
+    : "Start a round before editing Points and Skins";
+  if (!commissionerMode || !hasActiveRound) closeLatePlayerForm();
+  if (!commissionerMode || !hasActiveRound) closeGameParticipationForm();
   if (!commissionerMode || !hasActiveRound) closePlayerGroupForm();
   elements.todayCommissionerMode.textContent = !hasActiveRound && !completedRound && commissionerMode
     ? "Start Today's Round"
@@ -685,14 +693,14 @@ function renderHandicapVerificationResult() {
 
   elements.handicapVerifyResult.innerHTML = `
     <strong>Player: ${player.name}</strong>
-    <span class="player-details">Handicap Index: ${window.OGSGolf.rules.formatHandicapIndex(details.handicapIndex)}</span>
+    <span class="player-details">Handicap Index: ${formatHandicapIndex(details.handicapIndex)}</span>
     <span class="player-details">Course: ${course.name}</span>
     <span class="player-details">Tee: ${tee.label}</span>
     <span class="player-details">Course Rating: ${details.courseRating}</span>
     <span class="player-details">Slope Rating: ${details.slopeRating}</span>
     <span class="player-details">Par: ${details.par}</span>
     <span class="player-details">Unrounded: ${formatHandicapNumber(details.unrounded)}</span>
-    <strong>Course Handicap: ${window.OGSGolf.rules.formatHandicapIndex(details.courseHandicap)}</strong>
+    <strong>Course Handicap: ${formatHandicapIndex(details.courseHandicap)}</strong>
   `;
 }
 
@@ -710,8 +718,8 @@ function renderHandicapVerificationExamples() {
       return `
         <div class="summary-row">
           <span>${player.name}</span>
-          <strong>${tee.label}: CH ${window.OGSGolf.rules.formatHandicapIndex(details.courseHandicap)}</strong>
-          <small>Index ${window.OGSGolf.rules.formatHandicapIndex(details.handicapIndex)} | Rating ${details.courseRating} | Slope ${details.slopeRating} | Par ${details.par}</small>
+          <strong>${tee.label}: CH ${formatHandicapIndex(details.courseHandicap)}</strong>
+          <small>Index ${formatHandicapIndex(details.handicapIndex)} | Rating ${details.courseRating} | Slope ${details.slopeRating} | Par ${details.par}</small>
           <small>Unrounded ${formatHandicapNumber(details.unrounded)}</small>
         </div>
       `;
@@ -1014,6 +1022,8 @@ function renderLatePlayerForm() {
 function openLatePlayerForm() {
   if (!commissionerMode || !roundState || !roundSettings?.groups?.length) return;
 
+  closeGameParticipationForm();
+  closePlayerGroupForm();
   showTodayRoundScreen();
   renderLatePlayerForm();
   elements.latePlayerPanel.classList.remove("is-hidden");
@@ -1033,17 +1043,17 @@ function renderPlayerGroupForm() {
     group.forEach((playerId) => groupByPlayerId.set(playerId, groupIndex));
   });
   elements.playerGroupList.innerHTML = selectedPlayers.map((player) => {
-    const currentGroupIndexForPlayer = groupByPlayerId.get(player.id) ?? 0;
+    const currentPlayerGroup = groupByPlayerId.get(player.id) ?? 0;
     const groupOptions = roundSettings.groups.map((group, groupIndex) => {
       const record = getGroupRecord(groupIndex);
-      const selected = groupIndex === currentGroupIndexForPlayer ? " selected" : "";
+      const selected = groupIndex === currentPlayerGroup ? " selected" : "";
       return `<option value="${groupIndex}"${selected}>Group ${groupIndex + 1} - Hole ${record.currentHole || 1}</option>`;
     }).join("");
 
     return `
       <label class="player-group-row">
         <strong>${escapeText(player.name)}</strong>
-        <select class="field-control" data-player-group-id="${player.id}" aria-label="Group for ${escapeText(player.name)}">
+        <select class="field-control" data-player-group-id="${escapeText(player.id)}" aria-label="Group for ${escapeText(player.name)}">
           ${groupOptions}
         </select>
       </label>
@@ -1057,6 +1067,7 @@ function openPlayerGroupForm() {
 
   showTodayRoundScreen();
   closeLatePlayerForm();
+  closeGameParticipationForm();
   renderPlayerGroupForm();
   elements.playerGroupPanel.classList.remove("is-hidden");
   elements.playerGroupPanel.scrollIntoView({ behavior: "auto", block: "nearest" });
@@ -1115,6 +1126,139 @@ async function savePlayerGroupChanges() {
   elements.todayStatus.textContent = moveResult.movedPlayers.length
     ? `${moveResult.movedPlayers.length} player${moveResult.movedPlayers.length === 1 ? "" : "s"} moved. Existing scores and round progress were preserved.`
     : "No group assignments changed.";
+}
+
+function getGameParticipationPlayer() {
+  return selectedPlayers.find((player) => player.id === elements.gameParticipationPlayer.value) || null;
+}
+
+function formatMoney(value) {
+  return `$${Number(value || 0).toFixed(0)}`;
+}
+
+function getParticipationPotPreview(player, inPoints, inSkins) {
+  const pointsPlayers = selectedPlayers.filter((item) =>
+    item.id === player.id ? inPoints : item.inPoints === true
+  );
+  const skinsPlayers = selectedPlayers.filter((item) =>
+    item.id === player.id ? inSkins : item.inSkins === true
+  );
+  const pointsAmount = Number(roundSettings.games?.pointsGame?.amount || 0);
+  const skinsAmount = Number(roundSettings.games?.netSkins?.amount || 0);
+  const pointsPot = Math.round(pointsAmount / 3) * 3 * pointsPlayers.length;
+  const skinsPot = Math.round(skinsAmount * skinsPlayers.length);
+
+  return {
+    pointsCount: pointsPlayers.length,
+    skinsCount: skinsPlayers.length,
+    pointsPot,
+    skinsPot
+  };
+}
+
+function renderGameParticipationSelection() {
+  const player = getGameParticipationPlayer();
+
+  if (!player) {
+    elements.gameParticipationPreview.textContent = "No active players are available.";
+    elements.saveGameParticipation.disabled = true;
+    return;
+  }
+
+  elements.gameParticipationPoints.checked = player.inPoints === true;
+  elements.gameParticipationSkins.checked = player.inSkins === true;
+  elements.saveGameParticipation.disabled = false;
+  renderGameParticipationPreview();
+}
+
+function renderGameParticipationPreview() {
+  const player = getGameParticipationPlayer();
+  if (!player) return;
+
+  const preview = getParticipationPotPreview(
+    player,
+    elements.gameParticipationPoints.checked,
+    elements.gameParticipationSkins.checked
+  );
+  elements.gameParticipationPreview.textContent =
+    `Entire round after saving: Points ${preview.pointsCount} players / ${formatMoney(preview.pointsPot)} pot; `
+    + `Skins ${preview.skinsCount} players / ${formatMoney(preview.skinsPot)} pot. `
+    + "Scores, foursome, tee, and handicap stay unchanged.";
+}
+
+function openGameParticipationForm() {
+  if (!commissionerMode || !roundState) return;
+
+  closeLatePlayerForm();
+  closePlayerGroupForm();
+  elements.gameParticipationPlayer.innerHTML = selectedPlayers
+    .map((player) => `<option value="${escapeText(player.id)}">${escapeText(player.name)}</option>`)
+    .join("");
+  elements.gameParticipationStatus.textContent = "";
+  renderGameParticipationSelection();
+  elements.gameParticipationPanel.classList.remove("is-hidden");
+  elements.gameParticipationPanel.scrollIntoView({ behavior: "auto", block: "nearest" });
+}
+
+function closeGameParticipationForm() {
+  elements.gameParticipationPanel?.classList.add("is-hidden");
+  if (elements.gameParticipationStatus) elements.gameParticipationStatus.textContent = "";
+}
+
+function getParticipationRemovalConfirmation(player, inPoints, inSkins) {
+  const removedGames = [];
+  if (player.inPoints === true && !inPoints) removedGames.push("Points");
+  if (player.inSkins === true && !inSkins) removedGames.push("Skins");
+
+  if (removedGames.length === 0) return "";
+
+  return `Remove ${player.name} from ${removedGames.join(" and ")} for the entire round?\n\n`
+    + "Their scores and foursome will stay unchanged. The money pots, winners, and payouts will be recalculated.";
+}
+
+async function saveGameParticipation() {
+  if (!commissionerMode || !roundState) return;
+
+  const player = getGameParticipationPlayer();
+  if (!player) return;
+
+  const inPoints = elements.gameParticipationPoints.checked;
+  const inSkins = elements.gameParticipationSkins.checked;
+
+  if (player.inPoints === inPoints && player.inSkins === inSkins) {
+    elements.gameParticipationStatus.textContent = "No changes to save.";
+    return;
+  }
+
+  const confirmation = getParticipationRemovalConfirmation(player, inPoints, inSkins);
+  if (confirmation && !window.confirm(confirmation)) return;
+
+  elements.saveGameParticipation.disabled = true;
+  elements.gameParticipationStatus.textContent = "Saving and recalculating money...";
+
+  const update = roundState.updateRoundPlayerParticipation(player.id, { inPoints, inSkins });
+  if (!update) {
+    elements.saveGameParticipation.disabled = false;
+    elements.gameParticipationStatus.textContent = "The player could not be updated.";
+    return;
+  }
+
+  syncActiveRoundPlayerSnapshot(update.player);
+  const roundPlayerResult = await roundCloudService.upsertRoundPlayer(buildRoundPlayerCloudRow(update.player));
+  const savedRound = await autoSaveUnfinishedRound();
+  const payoutSummary = update.payoutSummary;
+  const pointsPot = payoutSummary?.points?.totalPot || 0;
+  const skinsPot = payoutSummary?.skins?.totalPot || 0;
+  const cloudConfirmed = roundPlayerResult.ok && Boolean(savedRound?.cloudUpdatedAt);
+  const statusMessage = `${player.name} updated for the entire round. `
+    + `Points pot ${formatMoney(pointsPot)}; Skins pot ${formatMoney(skinsPot)}. `
+    + "Scores and foursome were unchanged."
+    + (cloudConfirmed ? "" : " This device saved the change, but cloud confirmation did not finish.");
+
+  elements.saveGameParticipation.disabled = false;
+  closeGameParticipationForm();
+  renderTodayRoundScreen();
+  elements.todayStatus.textContent = statusMessage;
 }
 
 function getLatePlayerJoinHole(groupIndex, groupRecord = getGroupRecord(groupIndex)) {
@@ -1278,15 +1422,30 @@ async function showCommissionerGroupSelection({ refresh = true } = {}) {
 async function openCommissionerGroup(groupIndex) {
   if (!commissionerMode || !roundSettings?.groups?.length) return;
 
+  const targetGroupIndex = Math.max(0, Math.min(roundSettings.groups.length - 1, groupIndex));
+
+  // Open the locally loaded group immediately. Cloud refreshes are useful for
+  // bringing in other scorers' changes, but mobile scoring navigation must not
+  // be blocked by a slow or unavailable request.
+  goToGroup(targetGroupIndex);
+
   if (roundState?.id) {
     elements.liveRefreshStatus.textContent = "Loading selected group from cloud...";
     const refreshResult = await applyCloudScoreStateForActiveRound(roundState.id);
     elements.liveRefreshStatus.textContent = refreshResult.ok
-      ? `Group ${groupIndex + 1} loaded.`
+      ? `Group ${targetGroupIndex + 1} loaded.`
       : (refreshResult.message || "Cloud load failed. Showing this device's saved copy.");
-  }
 
-  goToGroup(groupIndex);
+    // Refresh the visible hole only if the user is still scoring the group they
+    // tapped. Do not pull them back if they navigated elsewhere while awaiting.
+    if (
+      currentGroupIndex === targetGroupIndex
+      && !elements.roundScreen.classList.contains("is-leaderboard-view")
+      && !elements.roundScreen.classList.contains("is-commissioner-group-selection")
+    ) {
+      renderApp();
+    }
+  }
 }
 
 function mergeRoster(localPlayers, cloudPlayers) {
@@ -1849,9 +2008,9 @@ function openHandicapAdjust(playerId) {
   closeTeeChange();
   pendingHandicapPlayerId = playerId;
   elements.handicapAdjustPlayerName.textContent = player.name;
-  elements.currentHandicapIndex.textContent = window.OGSGolf.rules.formatHandicapIndex(player.handicap ?? player.handicapIndex ?? 0);
-  elements.currentCourseHandicap.textContent = window.OGSGolf.rules.formatHandicapIndex(roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? 0);
-  elements.newHandicapIndex.value = window.OGSGolf.rules.formatHandicapIndex(player.handicap ?? player.handicapIndex ?? "");
+  elements.currentHandicapIndex.textContent = formatHandicapIndex(player.handicap ?? player.handicapIndex ?? 0);
+  elements.currentCourseHandicap.textContent = formatHandicapIndex(roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? 0);
+  elements.newHandicapIndex.value = formatHandicapIndex(player.handicap ?? player.handicapIndex ?? 0);
   elements.handicapAdjustStatus.textContent = "This change applies to this round only.";
   elements.handicapAdjustPanel.classList.remove("is-hidden");
   elements.handicapAdjustPanel.scrollIntoView({ behavior: "auto", block: "center" });
@@ -1886,7 +2045,7 @@ function renderTeeChangeDetails() {
 
   const details = window.OGSGolf.rules.getCourseHandicapDetails(player, selectedCourse, teeId);
   elements.newTeeDetails.textContent =
-    `New ${getTeeLabel(teeId)} tee: Rating ${details.courseRating}, Slope ${details.slopeRating}, Par ${details.par}, Course Handicap ${window.OGSGolf.rules.formatHandicapIndex(details.courseHandicap)}.`;
+    `New ${getTeeLabel(teeId)} tee: Rating ${details.courseRating}, Slope ${details.slopeRating}, Par ${details.par}, Course Handicap ${formatHandicapIndex(details.courseHandicap)}.`;
 }
 
 function openTeeChange(playerId) {
@@ -1899,7 +2058,7 @@ function openTeeChange(playerId) {
   pendingTeePlayerId = playerId;
   elements.teeChangePlayerName.textContent = player.name;
   elements.currentTeeName.textContent = getTeeLabel(player.tee);
-  elements.currentTeeCourseHandicap.textContent = window.OGSGolf.rules.formatHandicapIndex(roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? 0);
+  elements.currentTeeCourseHandicap.textContent = formatHandicapIndex(roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? 0);
   elements.newTeeSelect.innerHTML = selectedCourse.teeOrder
     .filter((teeId) => selectedCourse.tees?.[teeId] && selectedCourse.teeRatings?.[teeId])
     .map((teeId) => `<option value="${teeId}"${teeId === player.tee ? " selected" : ""}>${getTeeLabel(teeId)}</option>`)
@@ -1934,30 +2093,21 @@ function buildRoundPlayerCloudRow(player) {
 }
 
 function syncActiveRoundPlayerSnapshot(player) {
-  selectedPlayers = selectedPlayers.map((item) =>
-    item.id === player.id
-      ? {
-        ...item,
-        tee: player.tee,
-        handicap: player.handicap,
-        handicapIndex: player.handicapIndex,
-        courseHandicap: player.courseHandicap
-      }
-      : item
-  );
+  const snapshot = {
+    tee: player.tee,
+    handicap: player.handicap,
+    handicapIndex: player.handicapIndex,
+    courseHandicap: player.courseHandicap,
+    inPoints: player.inPoints === true,
+    inSkins: player.inSkins === true
+  };
+  const selectedPlayer = selectedPlayers.find((item) => item.id === player.id);
+
+  if (selectedPlayer) Object.assign(selectedPlayer, snapshot);
 
   if (roundSettings?.players) {
-    roundSettings.players = roundSettings.players.map((item) =>
-      item.id === player.id
-        ? {
-          ...item,
-          tee: player.tee,
-          handicap: player.handicap,
-          handicapIndex: player.handicapIndex,
-          courseHandicap: player.courseHandicap
-        }
-        : item
-    );
+    const roundPlayer = roundSettings.players.find((item) => item.id === player.id);
+    if (roundPlayer) Object.assign(roundPlayer, snapshot);
   }
 }
 
@@ -1992,9 +2142,9 @@ async function saveHandicapAdjust() {
   if (!commissionerMode || !roundState || !pendingHandicapPlayerId) return;
 
   const player = selectedPlayers.find((item) => item.id === pendingHandicapPlayerId);
-  const newHandicapIndex = window.OGSGolf.rules.parseHandicapIndex(elements.newHandicapIndex.value);
+  const newHandicapIndex = parseHandicapIndex(elements.newHandicapIndex.value);
 
-  if (!player || !Number.isFinite(newHandicapIndex)) {
+  if (!player || newHandicapIndex === null) {
     elements.handicapAdjustStatus.textContent = "Enter a valid GHIN index.";
     return;
   }
@@ -2037,7 +2187,9 @@ async function saveHandicapAdjust() {
   closeHandicapAdjust();
   renderApp();
   elements.saveStatusMessage.textContent =
-    `${player.name}\nRound GHIN changed from ${window.OGSGolf.rules.formatHandicapIndex(update.previousHandicapIndex)} to ${window.OGSGolf.rules.formatHandicapIndex(update.newHandicapIndex)}\nCourse Handicap changed from ${window.OGSGolf.rules.formatHandicapIndex(update.previousCourseHandicap)} to ${window.OGSGolf.rules.formatHandicapIndex(update.newCourseHandicap)}\nThis change applies to this round only.`;
+    `${player.name}\nRound GHIN changed from ${formatHandicapIndex(update.previousHandicapIndex)} to ${formatHandicapIndex(update.newHandicapIndex)}`
+    + `\nCourse Handicap changed from ${formatHandicapIndex(update.previousCourseHandicap)} to ${formatHandicapIndex(update.newCourseHandicap)}`
+    + "\nThis change applies to this round only.";
 }
 
 async function saveTeeChange() {
@@ -2272,6 +2424,7 @@ function goToGroup(nextGroupIndex) {
   if (!commissionerMode && roundSettings.groupScorers?.[nextGroupIndex] !== currentScorerId) return;
 
   hideCommissionerGroupSelection();
+  elements.roundScreen.classList.remove("is-leaderboard-view");
   const previousGroupIndex = currentGroupIndex;
   currentGroupIndex = Math.max(0, Math.min(roundSettings.groups.length - 1, nextGroupIndex));
   if (currentGroupIndex !== previousGroupIndex) {
@@ -2334,7 +2487,9 @@ function showScoreMyGroup() {
   if (!roundState) return;
 
   if (commissionerMode) {
-    showCommissionerGroupSelection({ refresh: false });
+    // Commissioner Mode can still choose another group through Manage Current
+    // Round, but Score My Group resumes the active group at its saved hole.
+    goToGroup(currentGroupIndex);
     return;
   }
 
@@ -3962,6 +4117,12 @@ elements.viewLiveMatch.addEventListener("click", openTodayRoundPrimaryAction);
 elements.choosePlayerScoring.addEventListener("click", choosePlayerOrScorer);
 elements.todayAddPlayer.addEventListener("click", openLatePlayerForm);
 elements.todayChangeGroups.addEventListener("click", openPlayerGroupForm);
+elements.todayEditGames.addEventListener("click", openGameParticipationForm);
+elements.gameParticipationPlayer.addEventListener("change", renderGameParticipationSelection);
+elements.gameParticipationPoints.addEventListener("change", renderGameParticipationPreview);
+elements.gameParticipationSkins.addEventListener("change", renderGameParticipationPreview);
+elements.cancelGameParticipation.addEventListener("click", closeGameParticipationForm);
+elements.saveGameParticipation.addEventListener("click", saveGameParticipation);
 elements.todayLastRoundResults.addEventListener("click", showPreviousRounds);
 elements.todayCommissionerMode.addEventListener("click", openCommissionerFromToday);
 elements.scorerList.addEventListener("click", (event) => {

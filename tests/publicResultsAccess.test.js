@@ -40,7 +40,7 @@ assert(
 
 const htmlSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 assert(
-  htmlSource.includes("src/app.js?v=20260829-active-group-changes"),
+  htmlSource.includes("src/app.js?v=20260829-active-round-usga"),
   "The active-round leaderboard fix has a new mobile cache version"
 );
 

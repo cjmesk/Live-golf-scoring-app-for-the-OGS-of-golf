@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OG&apos;s Golf</title>
-  <link rel="stylesheet" href="src/styles/main.css?v=20260829-active-group-changes">
+  <link rel="stylesheet" href="src/styles/main.css?v=20260829-active-round-usga">
 </head>
 <body>
   <header class="app-header">
@@ -105,6 +105,7 @@
         <button id="choosePlayerScoring" type="button" class="secondary-button">Enter Scores</button>
         <button id="todayAddPlayer" type="button" class="save-button today-add-player is-hidden">+ Add Player</button>
         <button id="todayChangeGroups" type="button" class="secondary-button today-change-groups is-hidden">Change Player Groups</button>
+        <button id="todayEditGames" type="button" class="secondary-button is-hidden">Edit Points &amp; Skins</button>
         <button id="todayLastRoundResults" type="button" class="secondary-button">Round History</button>
         <button id="todayCommissionerMode" type="button" class="secondary-button">Commissioner Mode</button>
       </div>
@@ -130,6 +131,26 @@
           <button id="saveLatePlayer" type="button" class="save-button">Add Player</button>
         </div>
         <p id="latePlayerStatus" class="cloud-save-status"></p>
+      </div>
+      <div id="gameParticipationPanel" class="late-player-panel is-hidden">
+        <h3>Edit Points &amp; Skins</h3>
+        <p class="player-details">The golfer stays in the round. Their scores, foursome, tee, and handicap will not change.</p>
+        <label class="field-label" for="gameParticipationPlayer">Player</label>
+        <select id="gameParticipationPlayer" class="field-control"></select>
+        <label class="toggle-line">
+          <input id="gameParticipationPoints" type="checkbox">
+          Playing Points
+        </label>
+        <label class="toggle-line">
+          <input id="gameParticipationSkins" type="checkbox">
+          Playing Skins
+        </label>
+        <p id="gameParticipationPreview" class="player-details">Changes apply to the entire round. Money, winners, and payouts recalculate automatically.</p>
+        <div class="dnf-confirm-actions">
+          <button id="cancelGameParticipation" type="button" class="secondary-button">Cancel</button>
+          <button id="saveGameParticipation" type="button" class="save-button">Save &amp; Recalculate</button>
+        </div>
+        <p id="gameParticipationStatus" class="cloud-save-status"></p>
       </div>
       <div id="playerGroupPanel" class="late-player-panel player-group-panel is-hidden">
         <h3>Change Player Groups</h3>
@@ -262,6 +283,7 @@
 
       <div class="setup-panel">
         <h3>Step 2: Select Players</h3>
+        <span class="player-details">Select today&apos;s golfers and confirm each round index, tee, playing group, Points, and Skins before continuing. Use +3.0 for a plus-three golfer.</span>
         <div class="setup-tools">
           <input id="memberSearch" class="field-control" type="search" placeholder="Search roster">
           <span id="selectedPlayerCount" class="player-details">0 selected</span>
@@ -295,20 +317,20 @@
         <div id="teamAssignmentList" class="member-list"></div>
       </div>
 
-      <button id="startRound" type="button" class="save-button start-button">Next</button>
+      <button id="startRound" type="button" class="save-button start-button">Build Foursomes</button>
     </section>
 
     <section id="groupSetupScreen" class="group-setup-section is-hidden" aria-labelledby="groupSetupTitle">
       <div class="setup-header">
         <div>
-          <p class="eyebrow dark">Group Setup</p>
-          <h2 id="groupSetupTitle">Assign Groups</h2>
+          <p class="eyebrow dark">Before You Start</p>
+          <h2 id="groupSetupTitle">Build Foursomes</h2>
         </div>
       </div>
 
       <div class="setup-panel">
         <strong id="groupSetupCount">0 players</strong>
-        <span class="player-details">Assign each selected player to exactly one group. Every group starts on Hole 1.</span>
+        <span class="player-details">Put every golfer into a foursome before starting the round. You can add or remove groups and choose each group&apos;s starting hole.</span>
         <div class="setup-tools">
           <button id="removeGroup" type="button" class="secondary-button">Remove Group</button>
           <button id="addGroup" type="button" class="secondary-button">Add Group</button>
@@ -320,7 +342,7 @@
 
       <div class="group-setup-actions">
         <button id="backToRoundSetup" type="button" class="secondary-button">Back to Round Setup</button>
-        <button id="beginGroupedRound" type="button" class="save-button">Next</button>
+        <button id="beginGroupedRound" type="button" class="save-button">Review Foursomes</button>
       </div>
       <div id="groupSetupStatus" class="cloud-save-status"></div>
     </section>
@@ -336,7 +358,7 @@
       <div id="eventSummary" class="event-summary"></div>
 
       <div class="event-summary-actions">
-        <button id="backToGroupSetup" type="button" class="secondary-button">Back to Groups</button>
+        <button id="backToGroupSetup" type="button" class="secondary-button">Back to Foursomes</button>
         <button id="confirmStartRound" type="button" class="save-button">Start Round</button>
       </div>
     </section>
@@ -403,8 +425,8 @@
           <span>Current Course Handicap: <strong id="currentCourseHandicap">0</strong></span>
         </div>
         <label class="field-label" for="newHandicapIndex">New GHIN Index</label>
-        <input id="newHandicapIndex" class="field-control" type="text" inputmode="decimal" placeholder="Example: 3.0 or +3.0">
-        <span class="player-details">For a golfer better than scratch, include the plus sign—for example, +3.0.</span>
+        <input id="newHandicapIndex" class="field-control" type="text" inputmode="decimal" placeholder="12.2 or +1.4">
+        <span class="player-details">For a plus golfer, enter the index with a plus sign—for example, +1.4.</span>
         <div class="dnf-confirm-actions">
           <button id="cancelHandicapAdjust" type="button" class="secondary-button">Cancel</button>
           <button id="saveHandicapAdjust" type="button" class="save-button">Save</button>
@@ -566,8 +588,8 @@
         <input id="playerGhin" class="field-control" type="text" inputmode="numeric">
 
         <label class="field-label" for="playerHandicap">Handicap Index</label>
-        <input id="playerHandicap" class="field-control" type="text" inputmode="decimal" placeholder="Example: 12.4 or +3.0" required>
-        <span class="player-details">Enter +3.0 for a plus-three golfer. A plain 3.0 is a regular three handicap.</span>
+        <input id="playerHandicap" class="field-control" type="text" inputmode="decimal" placeholder="12.2 or +1.4" required>
+        <span class="player-details">For a plus golfer, enter the index with a plus sign—for example, +1.4.</span>
 
         <label class="field-label" for="playerTee">Preferred Tee</label>
         <select id="playerTee" class="field-control">
@@ -669,31 +691,31 @@
         </div>
       </div>
       <div class="setup-panel">
-        <strong>OG&apos;s Golf v0.9.10 Late Player Beta</strong>
-        <span class="player-details">Built for simple league scoring, shared leaderboards, points, skins, and team event setup.</span>
+        <strong>OG&apos;s Golf v0.10.0 Pre-Round Setup Beta</strong>
+        <span class="player-details">Build and review players, handicaps, tees, games, foursomes, and scorekeepers before publishing the round.</span>
       </div>
     </section>
   </main>
 
-  <footer class="app-footer">OGS Golf v0.9.10 Late Player Beta</footer>
+  <footer class="app-footer">OGS Golf v0.10.0 Pre-Round Setup Beta</footer>
 
   <script src="src/data/course.js?v=20260731-park-mammoth"></script>
   <script src="src/data/players.js?v=20260709-v098-menu"></script>
   <script src="src/rules/points.js?v=20260714-chicago-points"></script>
-  <script src="src/rules/handicap.js?v=20260829-plus-handicaps"></script>
-  <script src="src/rules/fourBallMatch.js?v=20260829-plus-handicaps"></script>
+  <script src="src/rules/handicap.js?v=20260823-plus-handicap"></script>
+  <script src="src/rules/fourBallMatch.js?v=20260829-active-round-usga"></script>
   <script src="src/rules/skins.js?v=20260709-v098-menu"></script>
   <script src="src/state/playerStorage.js?v=20260709-v098-menu"></script>
   <script src="src/state/scorerStorage.js?v=20260711-device-scorer"></script>
-  <script src="src/state/roundState.js?v=20260829-active-group-changes"></script>
+  <script src="src/state/roundState.js?v=20260829-active-round-usga"></script>
   <script src="src/state/roundStorage.js?v=20260807-mobile-cache-guard"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
-  <script src="src/cloud/roundCloudService.js?v=20260807-completed-round-loader"></script>
-  <script src="src/ui/dom.js?v=20260829-active-group-changes"></script>
-  <script src="src/ui/formatters.js?v=20260829-plus-handicaps"></script>
-  <script src="src/ui/setupView.js?v=20260829-plus-handicaps"></script>
+  <script src="src/cloud/roundCloudService.js?v=20260823-game-participation"></script>
+  <script src="src/ui/dom.js?v=20260829-active-round-usga"></script>
+  <script src="src/ui/formatters.js?v=20260823-plus-handicap"></script>
+  <script src="src/ui/setupView.js?v=20260829-pre-round-review"></script>
   <script src="src/ui/holeView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/leaderboardView.js?v=20260829-plus-handicaps"></script>
   <script src="src/ui/pointsPayoutView.js?v=20260710-points-quota"></script>
@@ -701,9 +723,9 @@
   <script src="src/ui/finalSummaryView.js?v=20260808-four-ball-match"></script>
   <script src="src/ui/playerScorecardView.js?v=20260829-plus-handicaps"></script>
   <script src="src/ui/previousRoundsView.js?v=20260808-latest-round-card"></script>
-  <script src="src/ui/playerManagementView.js?v=20260829-plus-handicaps"></script>
-  <script src="src/ui/groupSetupView.js?v=20260829-plus-handicaps"></script>
-  <script src="src/ui/eventSummaryView.js?v=20260808-four-ball-match"></script>
-  <script src="src/app.js?v=20260829-active-group-changes"></script>
+  <script src="src/ui/playerManagementView.js?v=20260823-plus-handicap"></script>
+  <script src="src/ui/groupSetupView.js?v=20260823-pre-round-foursomes"></script>
+  <script src="src/ui/eventSummaryView.js?v=20260829-pre-round-review"></script>
+  <script src="src/app.js?v=20260829-active-round-usga"></script>
 </body>
 </html>

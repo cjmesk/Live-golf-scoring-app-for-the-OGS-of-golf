@@ -1,25 +1,6 @@
 window.OGSGolf = window.OGSGolf || {};
 window.OGSGolf.rules = window.OGSGolf.rules || {};
 
-window.OGSGolf.rules.parseHandicapIndex = function parseHandicapIndex(value) {
-  const input = String(value ?? "").trim();
-  if (!input) return NaN;
-
-  const numericValue = Number(input);
-  if (!Number.isFinite(numericValue)) return NaN;
-  return input.startsWith("+") ? -Math.abs(numericValue) : numericValue;
-};
-
-window.OGSGolf.rules.formatHandicapIndex = function formatHandicapIndex(value) {
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) return "-";
-
-  const absoluteText = Number.isInteger(Math.abs(numericValue))
-    ? String(Math.abs(numericValue))
-    : String(Math.abs(numericValue));
-  return numericValue < 0 ? `+${absoluteText}` : absoluteText;
-};
-
 window.OGSGolf.rules.getCourseHandicapDetails = function getCourseHandicapDetails(player, course, teeId = player.tee) {
   const teeRating = course.teeRatings[teeId];
   const teePar = teeRating.par || course.par;
@@ -46,27 +27,28 @@ window.OGSGolf.rules.getCourseHandicap = function getCourseHandicap(player, cour
 };
 
 window.OGSGolf.rules.getStrokesOnHole = function getStrokesOnHole(courseHandicap, holeHandicap) {
-  const roundedHandicap = Number(courseHandicap) < 0
-    ? -Math.round(Math.abs(Number(courseHandicap)))
-    : Math.round(Number(courseHandicap) || 0);
-  const strokeIndex = Math.max(1, Math.min(18, Number(holeHandicap) || 1));
-  if (roundedHandicap === 0) return 0;
+  if (courseHandicap === 0) return 0;
 
-  if (roundedHandicap < 0) {
-    const strokesToGive = Math.abs(roundedHandicap);
-    const fullRounds = Math.floor(strokesToGive / 18);
-    const extraStrokes = strokesToGive % 18;
-    return -(fullRounds + (extraStrokes > 0 && strokeIndex > 18 - extraStrokes ? 1 : 0));
+  if (courseHandicap < 0) {
+    // A plus Course Handicap adds strokes to the player's net score, beginning
+    // with the hole ranked 18, then 17, and so on. Negative strokesReceived
+    // makes getNetScore add the stroke instead of subtracting it.
+    const strokesToAdd = Math.abs(courseHandicap);
+    const fullRounds = Math.floor(strokesToAdd / 18);
+    const extraStrokes = strokesToAdd % 18;
+    const receivesExtraPenalty = extraStrokes > 0 && holeHandicap > 18 - extraStrokes;
+
+    return -(fullRounds + (receivesExtraPenalty ? 1 : 0));
   }
 
   // Handicap holes are ranked 1 through 18. A player with a Course Handicap of
   // 12 gets one stroke on holes ranked 1 through 12. A player with a Course
   // Handicap of 20 gets one stroke on every hole, plus a second stroke on the
   // holes ranked 1 and 2.
-  const fullRounds = Math.floor(roundedHandicap / 18);
-  const extraStrokes = roundedHandicap % 18;
+  const fullRounds = Math.floor(courseHandicap / 18);
+  const extraStrokes = courseHandicap % 18;
 
-  return fullRounds + (strokeIndex <= extraStrokes ? 1 : 0);
+  return fullRounds + (holeHandicap <= extraStrokes ? 1 : 0);
 };
 
 window.OGSGolf.rules.getNetScore = function getNetScore(grossScore, strokesReceived) {

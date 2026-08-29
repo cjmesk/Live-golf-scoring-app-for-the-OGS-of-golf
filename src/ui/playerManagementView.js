@@ -24,7 +24,7 @@ window.OGSGolf.ui.fillPlayerForm = function fillPlayerForm(elements, player) {
   elements.editingPlayerId.value = player.id;
   elements.playerName.value = player.name;
   elements.playerGhin.value = player.ghin || "";
-  elements.playerHandicap.value = window.OGSGolf.rules.formatHandicapIndex(player.handicap);
+  elements.playerHandicap.value = window.OGSGolf.ui.formatHandicapIndex(player.handicap);
   elements.playerTee.value = player.tee;
   elements.playerActive.checked = player.active;
   elements.savePlayer.textContent = "Update Player";
@@ -33,7 +33,7 @@ window.OGSGolf.ui.fillPlayerForm = function fillPlayerForm(elements, player) {
 window.OGSGolf.ui.readPlayerForm = function readPlayerForm(elements) {
   const name = elements.playerName.value.trim();
   const handicapValue = elements.playerHandicap.value.trim();
-  const handicap = window.OGSGolf.rules.parseHandicapIndex(elements.playerHandicap.value);
+  const handicap = window.OGSGolf.ui.parseHandicapIndex(handicapValue);
 
   if (!name) {
     return {
@@ -41,7 +41,7 @@ window.OGSGolf.ui.readPlayerForm = function readPlayerForm(elements) {
     };
   }
 
-  if (!handicapValue || !Number.isFinite(handicap)) {
+  if (!handicapValue || handicap === null) {
     return {
       error: "Handicap index must be a valid number."
     };
@@ -75,7 +75,7 @@ window.OGSGolf.ui.renderPlayerManagement = function renderPlayerManagement(eleme
           <strong>${escapeRosterText(player.name)}</strong>
           <span class="player-details">
             ${player.ghin ? `GHIN ${escapeRosterText(player.ghin)}` : "No GHIN"}
-            | Index ${window.OGSGolf.rules.formatHandicapIndex(player.handicap)}
+            | Index ${window.OGSGolf.ui.formatHandicapIndex(player.handicap)}
             | Default tee ${escapeRosterText(player.tee)}
             | ${player.active ? "Active" : "Inactive"}
           </span>

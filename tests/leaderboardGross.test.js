@@ -8,6 +8,7 @@ global.OGSGolf = {};
 [
   "src/rules/points.js",
   "src/rules/handicap.js",
+  "src/rules/fourBallMatch.js",
   "src/rules/skins.js",
   "src/state/roundState.js",
   "src/ui/holeView.js",
@@ -528,3 +529,73 @@ if (!exportedRound.pointsResults?.standings?.length) {
 }
 
 console.log("Final points results test passed.");
+
+const matchPlayers = [
+  { id: "match-a1", name: "A1", handicap: 0, tee: "white", matchTeam: "A", inPoints: false, inSkins: false },
+  { id: "match-a2", name: "A2", handicap: 0, tee: "white", matchTeam: "A", inPoints: false, inSkins: false },
+  { id: "match-b1", name: "B1", handicap: 0, tee: "white", matchTeam: "B", inPoints: false, inSkins: false },
+  { id: "match-b2", name: "B2", handicap: 0, tee: "white", matchTeam: "B", inPoints: false, inSkins: false }
+];
+const matchSettings = {
+  course,
+  players: matchPlayers,
+  groups: [matchPlayers.map((player) => player.id)],
+  groupRecords: [{ holesToPlay: 9 }],
+  format: "four-ball-match",
+  fourBallMatch: { holes: 9, scoring: "gross", teamALabel: "Blue", teamBLabel: "Gold" },
+  games: { pointsGame: { enabled: false }, netSkins: { enabled: false } },
+  playerStatuses: {}
+};
+const matchState = window.OGSGolf.state.createRoundState(course, matchPlayers, matchSettings);
+matchState.applyCloudHoleScores([
+  { player_id: "match-a1", hole: 1, gross: 4 },
+  { player_id: "match-a2", hole: 1, gross: 5 },
+  { player_id: "match-b1", hole: 1, gross: 5 },
+  { player_id: "match-b2", hole: 1, gross: 6 }
+]);
+const durableMatchRound = matchState.getAutoSaveExport();
+const detailFeedPlayers = durableMatchRound.players.map((player) => ({
+  ...player,
+  matchTeam: "",
+  matchPlayingHandicap: null
+}));
+const restoredMatchSettings = {
+  ...durableMatchRound.roundSettings,
+  course,
+  players: detailFeedPlayers,
+  games: matchSettings.games
+};
+const restoredMatchState = window.OGSGolf.state.createRoundState(
+  course,
+  detailFeedPlayers,
+  restoredMatchSettings,
+  durableMatchRound
+);
+
+function createMatchLeaderboardElement() {
+  return {
+    innerHTML: "",
+    sections: [],
+    appendChild(section) {
+      section.onChildAppend = (html) => { this.innerHTML += html; };
+      this.sections.push(section);
+      this.innerHTML += section.innerHTML;
+    }
+  };
+}
+
+const firstMatchLeaderboard = createMatchLeaderboardElement();
+window.OGSGolf.ui.renderLeaderboard({ leaderboard: firstMatchLeaderboard }, detailFeedPlayers, restoredMatchState);
+restoredMatchState.goToHole(1);
+const reopenedMatchLeaderboard = createMatchLeaderboardElement();
+window.OGSGolf.ui.renderLeaderboard({ leaderboard: reopenedMatchLeaderboard }, detailFeedPlayers, restoredMatchState);
+
+if (!firstMatchLeaderboard.sections.some((section) => section.innerHTML.includes("Blue 1 Up through 1"))) {
+  throw new Error("Initial Match Play leaderboard must derive its result from saved hole scores.");
+}
+if (!reopenedMatchLeaderboard.sections.some((section) => section.innerHTML.includes("Blue 1 Up through 1"))) {
+  throw new Error("Reopened Match Play leaderboard must rebuild from the durable active-round snapshot.");
+}
+assertEqual(restoredMatchState.savedScores["match-a1"][0], 4, "Match navigation preserves saved gross scores");
+
+console.log("Match Play leaderboard reopen test passed.");
