@@ -42,6 +42,7 @@ window.OGSGolf.ui.getElements = function getElements() {
     eventSummaryScreen: document.querySelector("#eventSummaryScreen"),
     eventSummary: document.querySelector("#eventSummary"),
     backToGroupSetup: document.querySelector("#backToGroupSetup"),
+    saveRoundSetup: document.querySelector("#saveRoundSetup"),
     confirmStartRound: document.querySelector("#confirmStartRound"),
     playerManagementScreen: document.querySelector("#playerManagementScreen"),
     resumeScreen: document.querySelector("#resumeScreen"),

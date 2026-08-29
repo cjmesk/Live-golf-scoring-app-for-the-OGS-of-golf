@@ -6,7 +6,7 @@ const htmlSource = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const appSource = fs.readFileSync(path.join(root, "src", "app.js"), "utf8");
 const domSource = fs.readFileSync(path.join(root, "src", "ui", "dom.js"), "utf8");
 
-for (const label of ["Today's Round - In Progress", "Today's Results - Complete", "View Today's Results", "View Live Leaderboard", "Enter Scores", "Start Today's Round", "Commissioner Dashboard"]) {
+for (const label of ["Today's Round - In Progress", "Today's Results - Complete", "View Today's Results", "View Live Leaderboard", "Enter Scores", "Set Up Today's Round", "Resume Round Setup", "Commissioner Dashboard"]) {
   if (!appSource.includes(label) && !htmlSource.includes(label)) {
     throw new Error(`Missing status-aware Today screen label: ${label}`);
   }
