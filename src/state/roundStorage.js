@@ -4,6 +4,7 @@ window.OGSGolf.state = window.OGSGolf.state || {};
 window.OGSGolf.state.roundStorage = {
   key: "ogsGolfRounds",
   unfinishedKey: "ogsGolfUnfinishedRound",
+  setupDraftKey: "ogsGolfRoundSetupDraft",
 
   getAll() {
     try {
@@ -71,5 +72,22 @@ window.OGSGolf.state.roundStorage = {
 
   clearUnfinished() {
     window.localStorage.removeItem(this.unfinishedKey);
+  },
+
+  getSetupDraft() {
+    try {
+      return JSON.parse(window.localStorage.getItem(this.setupDraftKey) || "null");
+    } catch (error) {
+      console.warn("[OGS Golf] Saved round setup was unreadable and has been ignored.", error);
+      return null;
+    }
+  },
+
+  saveSetupDraft(roundSettings) {
+    window.localStorage.setItem(this.setupDraftKey, JSON.stringify(roundSettings));
+  },
+
+  clearSetupDraft() {
+    window.localStorage.removeItem(this.setupDraftKey);
   }
 };

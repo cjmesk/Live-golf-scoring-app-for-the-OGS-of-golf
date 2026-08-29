@@ -246,15 +246,16 @@ function renderTodayRoundScreen() {
   const roundIsComplete = Boolean(roundState?.isRoundComplete?.() || roundState?.completed);
   const hasActiveRound = Boolean(roundState && !roundIsComplete);
   const completedRound = getTodayCompletedRound();
+  const setupDraft = !hasActiveRound && !completedRound ? roundStorage.getSetupDraft() : null;
   const displayRound = hasActiveRound ? null : completedRound;
-  const displaySettings = hasActiveRound ? roundSettings : displayRound?.roundSettings;
+  const displaySettings = hasActiveRound ? roundSettings : (displayRound?.roundSettings || setupDraft);
   const eventCourseName = displaySettings?.course?.name
     || displayRound?.course?.name
     || selectedCourse?.name
     || "Twelve Stones Golf Club";
   const playerCount = hasActiveRound
     ? (selectedPlayers.length || roundSettings?.players?.length || 0)
-    : (displayRound?.players?.length || 0);
+    : (displayRound?.players?.length || setupDraft?.players?.length || 0);
   const groupCount = hasActiveRound
     ? (roundSettings?.groups?.length || 0)
     : (displaySettings?.groups?.length || 0);
@@ -268,7 +269,7 @@ function renderTodayRoundScreen() {
 
   elements.todayDate.textContent = formatTodayDate();
   elements.todayCourseName.textContent = eventCourseName;
-  elements.todayEventStatus.textContent = hasActiveRound ? "In Progress" : completedRound ? "Complete" : "Not Started";
+  elements.todayEventStatus.textContent = hasActiveRound ? "In Progress" : completedRound ? "Complete" : setupDraft ? "Setup Saved" : "Not Started";
   elements.todayPlayerCount.textContent = String(playerCount);
   elements.todayStartTime.textContent = startTime;
   elements.todayGroupCount.textContent = String(groupCount);
@@ -297,7 +298,7 @@ function renderTodayRoundScreen() {
   if (!commissionerMode || !hasActiveRound) closeGameParticipationForm();
   if (!commissionerMode || !hasActiveRound) closePlayerGroupForm();
   elements.todayCommissionerMode.textContent = !hasActiveRound && !completedRound && commissionerMode
-    ? "Start Today's Round"
+    ? (setupDraft ? "Resume Round Setup" : "Set Up Today's Round")
     : completedRound && commissionerMode
     ? "Start Another Round"
     : commissionerMode
@@ -307,6 +308,8 @@ function renderTodayRoundScreen() {
     ? "Choose Enter Scores or View Live Leaderboard."
     : completedRound
     ? "Today's round is complete. Final results are ready."
+    : setupDraft
+    ? "Round setup is saved on this device. Resume it when you are ready."
     : "No round has been started today.";
   updateLastRoundResultsVisibility();
 }
@@ -2727,6 +2730,16 @@ function openCommissionerFromToday() {
       return;
     }
 
+    const setupDraft = roundStorage.getSetupDraft();
+    if (setupDraft) {
+      pendingRoundSettings = setupDraft;
+      roundSettings = setupDraft;
+      renderEventSummary(elements, roundSettings);
+      setActiveScreen("eventSummary");
+      scrollToTop();
+      return;
+    }
+
     openSetupWizard();
     return;
   }
@@ -3809,8 +3822,28 @@ function reviewEventSummary() {
 }
 
 function backToGroupSetup() {
+  if (pendingRoundSettings) {
+    renderGroupSetupView(elements, pendingRoundSettings);
+  }
   setActiveScreen("groups");
   scrollToTop();
+}
+
+function saveRoundSetupForLater() {
+  if (!commissionerMode || !roundSettings) return;
+
+  const savedSetup = {
+    ...roundSettings,
+    eventStatus: "Setup Saved",
+    setupLocked: false,
+    preRoundReviewComplete: false,
+    setupSavedAt: new Date().toISOString()
+  };
+  roundSettings = savedSetup;
+  pendingRoundSettings = savedSetup;
+  roundStorage.saveSetupDraft(savedSetup);
+  showTodayRoundScreen();
+  elements.todayStatus.textContent = "Round setup saved. Tap Resume Round Setup when you are ready to start.";
 }
 
 async function beginGroupedRound() {
@@ -3835,6 +3868,7 @@ async function beginGroupedRound() {
   );
   syncRoundStateToCurrentGroup();
   completedRoundSaved = false;
+  roundStorage.clearSetupDraft();
   roundStorage.clearUnfinished();
 
   setActiveScreen("round");
@@ -4136,6 +4170,7 @@ elements.removeGroup.addEventListener("click", () => updateGroupCount(-1));
 elements.groupSetupList.addEventListener("change", refreshScorekeeperChoices);
 elements.beginGroupedRound.addEventListener("click", reviewEventSummary);
 elements.backToGroupSetup.addEventListener("click", backToGroupSetup);
+elements.saveRoundSetup.addEventListener("click", saveRoundSetupForLater);
 elements.confirmStartRound.addEventListener("click", beginGroupedRound);
 elements.resumeRound.addEventListener("click", resumeSavedRound);
 elements.startFreshRound.addEventListener("click", () => startFreshRound({ clearSavedRound: true }));
