@@ -2741,11 +2741,11 @@ function enterScorer(playerId) {
     return;
   }
 
+  const enteringAsCommissioner = commissionerMode;
   currentScorerId = playerId;
-  commissionerMode = false;
   viewOnlyMode = false;
   scorerStorage.saveScorerId(playerId, getCurrentRoundId());
-  scorerStorage.setCommissionerMode(false);
+  scorerStorage.setCommissionerMode(enteringAsCommissioner);
   clearSaveConfirmation();
 
   if (roundState) {
@@ -2760,6 +2760,20 @@ function enterScorer(playerId) {
 
   renderScorerSelection();
   elements.scorerAccessStatus.textContent = "Scorers wait here. Commissioner View creates the active event.";
+}
+
+function changeScorerOrCommissionerGroup() {
+  clearScorerForCurrentRound();
+  viewOnlyMode = false;
+
+  if (commissionerMode) {
+    scorerStorage.setCommissionerMode(true);
+    showCommissionerGroupSelection({ refresh: false });
+    return;
+  }
+
+  scorerStorage.setCommissionerMode(false);
+  renderScorerSelection();
 }
 
 function showSaveStatus(savedHoleIndex, savedGroupIndex) {
@@ -4516,19 +4530,8 @@ elements.showPreviousRounds.addEventListener("click", showPreviousRounds);
 elements.refreshCloudRounds.addEventListener("click", loadPreviousRoundsFromCloud);
 elements.backFromPreviousRounds.addEventListener("click", returnFromPreviousRounds);
 elements.showPlayerManagement.addEventListener("click", showPlayerManagement);
-elements.changeScorer.addEventListener("click", () => {
-  clearScorerForCurrentRound();
-  scorerStorage.setCommissionerMode(false);
-  commissionerMode = false;
-  renderScorerSelection();
-});
-elements.changeScorerQuick.addEventListener("click", () => {
-  clearScorerForCurrentRound();
-  scorerStorage.setCommissionerMode(false);
-  commissionerMode = false;
-  viewOnlyMode = false;
-  renderScorerSelection();
-});
+elements.changeScorer.addEventListener("click", changeScorerOrCommissionerGroup);
+elements.changeScorerQuick.addEventListener("click", changeScorerOrCommissionerGroup);
 elements.scoreMyGroup.addEventListener("click", showScoreMyGroup);
 elements.viewOverallLeaderboard.addEventListener("click", showLeaderboardPage);
 elements.refreshLiveScores.addEventListener("click", () => refreshLiveScores());
