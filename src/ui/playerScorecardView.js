@@ -304,8 +304,8 @@ window.OGSGolf.ui.renderPlayerScorecard = function renderPlayerScorecard(element
 
       <div class="player-scorecard-meta">
         <span>Tee <strong>${player.tee || "-"}</strong></span>
-        <span>Index <strong>${player.handicap ?? player.handicapIndex ?? "-"}</strong></span>
-        <span>Course HCP <strong>${roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? "-"}</strong></span>
+        <span>Index <strong>${window.OGSGolf.rules.formatHandicapIndex(player.handicap ?? player.handicapIndex)}</strong></span>
+        <span>Course HCP <strong>${window.OGSGolf.rules.formatHandicapIndex(roundState.courseHandicaps[player.id] ?? player.courseHandicap)}</strong></span>
         <span>Status <strong>${statusText}</strong></span>
       </div>
 

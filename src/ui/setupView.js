@@ -33,6 +33,19 @@ function getValidCourseTeeId(course, teeId) {
   return course.teeOrder[0];
 }
 
+function formatSetupHandicap(value) {
+  const formatter = window.OGSGolf.rules?.formatHandicapIndex;
+  return formatter ? formatter(value) : String(value ?? "-");
+}
+
+function parseSetupHandicap(value) {
+  const parser = window.OGSGolf.rules?.parseHandicapIndex;
+  if (parser) return parser(value);
+  const input = String(value ?? "").trim();
+  const numericValue = Number(input);
+  return input.startsWith("+") ? -Math.abs(numericValue) : numericValue;
+}
+
 window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, members) {
   elements.courseSelect.innerHTML = courses
     .map((course) => `<option value="${course.id}">${course.name}</option>`)
@@ -101,7 +114,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
           <input type="checkbox" data-member-id="${member.id}"${isPlayingToday ? " checked" : ""}>
           <span>
             <strong>${member.name}</strong>
-            <span>${member.ghin ? `GHIN ${member.ghin}` : "No GHIN"} | Index ${member.handicap} | Default ${member.tee} tees</span>
+            <span>${member.ghin ? `GHIN ${member.ghin}` : "No GHIN"} | Index ${formatSetupHandicap(member.handicap)} | Default ${member.tee} tees</span>
           </span>
         </label>
         <label class="tee-select-label">
@@ -127,7 +140,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
           ${manualMatchHandicapsEnabled ? `
             <label class="tee-select-label">
               <span>Playing HCP</span>
-              <input class="field-control" data-match-handicap-for="${member.id}" type="number" step="1" value="${manualMatchHandicaps.get(member.id) ?? member.courseHandicap ?? member.handicap ?? 0}">
+              <input class="field-control" data-match-handicap-for="${member.id}" type="text" inputmode="decimal" value="${formatSetupHandicap(manualMatchHandicaps.get(member.id) ?? member.courseHandicap ?? member.handicap ?? 0)}">
             </label>
           ` : ""}
         ` : ""}
@@ -176,7 +189,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
     }
 
     if (matchTeamSelect) matchTeams.set(matchTeamSelect.dataset.matchTeamFor, matchTeamSelect.value);
-    if (matchHandicapInput) manualMatchHandicaps.set(matchHandicapInput.dataset.matchHandicapFor, Number(matchHandicapInput.value));
+    if (matchHandicapInput) manualMatchHandicaps.set(matchHandicapInput.dataset.matchHandicapFor, parseSetupHandicap(matchHandicapInput.value));
 
     updateSelectedCount();
     if (checkbox) {

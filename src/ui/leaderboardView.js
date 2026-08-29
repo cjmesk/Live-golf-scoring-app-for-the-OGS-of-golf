@@ -90,7 +90,7 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
       <div class="rank">${standing.rankLabel}</div>
       <div>
         ${renderPlayerNameButton(player)}
-        <div class="player-details">Index ${player.handicap} | Course Handicap ${roundState.courseHandicaps[player.id]} | ${player.tee} tees</div>
+        <div class="player-details">Index ${window.OGSGolf.rules.formatHandicapIndex(player.handicap)} | Course Handicap ${window.OGSGolf.rules.formatHandicapIndex(roundState.courseHandicaps[player.id])} | ${player.tee} tees</div>
         <div class="player-details">${isDnf ? dnfText : `${totals.holesPlayed}/${totalHoles} holes saved`}</div>
         <div class="player-details">${getGameStatus(player)}</div>
       </div>

@@ -61,7 +61,7 @@ window.OGSGolf.ui.renderGroupSetupView = function renderGroupSetupView(elements,
         <div class="member-row">
           <div>
             <strong>${player.name}</strong>
-            <span class="player-details">${player.tee} tees | Index ${player.handicap}</span>
+            <span class="player-details">${player.tee} tees | Index ${window.OGSGolf.rules.formatHandicapIndex(player.handicap)}</span>
           </div>
           <label class="tee-select-label">
             <span>Group</span>
