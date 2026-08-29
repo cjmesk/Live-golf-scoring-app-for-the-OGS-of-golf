@@ -136,6 +136,20 @@ window.OGSGolf.ui.readGroupAssignments = function readGroupAssignments(elements,
   return groupsByNumber.filter((group) => group.length > 0);
 };
 
+window.OGSGolf.ui.rememberGroupAssignments = function rememberGroupAssignments(elements, players, groupAssignments) {
+  const groups = window.OGSGolf.ui.readGroupAssignments(elements, players);
+
+  groups.forEach((group, groupIndex) => {
+    group.forEach((playerId) => {
+      groupAssignments.set(playerId, groupIndex + 1);
+      const player = players.find((item) => item.id === playerId);
+      if (player) player.setupGroupNumber = groupIndex + 1;
+    });
+  });
+
+  return groups;
+};
+
 window.OGSGolf.ui.readGroupScorers = function readGroupScorers(elements, groups) {
   return groups.map((group, index) => {
     const select = elements.groupScorerList.querySelector(`[data-group-scorer="${index}"]`);
