@@ -1,6 +1,14 @@
 window.OGSGolf = window.OGSGolf || {};
 window.OGSGolf.ui = window.OGSGolf.ui || {};
 
+function formatScorecardHandicap(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  return window.OGSGolf.ui.formatHandicapIndex
+    ? window.OGSGolf.ui.formatHandicapIndex(number)
+    : (number < 0 ? `+${Math.abs(number)}` : String(number));
+}
+
 window.OGSGolf.ui.renderPlayerScorecard = function renderPlayerScorecard(elements, roundState, player, options = {}) {
   const { getHoleResult, getPoints } = window.OGSGolf.rules;
   const totalHoles = roundState.totalHoles || 18;
@@ -304,8 +312,8 @@ window.OGSGolf.ui.renderPlayerScorecard = function renderPlayerScorecard(element
 
       <div class="player-scorecard-meta">
         <span>Tee <strong>${player.tee || "-"}</strong></span>
-        <span>Index <strong>${player.handicap ?? player.handicapIndex ?? "-"}</strong></span>
-        <span>Course HCP <strong>${roundState.courseHandicaps[player.id] ?? player.courseHandicap ?? "-"}</strong></span>
+        <span>Index <strong>${formatScorecardHandicap(player.handicap ?? player.handicapIndex)}</strong></span>
+        <span>Course HCP <strong>${formatScorecardHandicap(roundState.courseHandicaps[player.id] ?? player.courseHandicap)}</strong></span>
         <span>Status <strong>${statusText}</strong></span>
       </div>
 

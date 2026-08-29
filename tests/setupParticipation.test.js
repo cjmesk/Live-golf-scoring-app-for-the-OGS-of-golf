@@ -38,6 +38,7 @@ const elements = {
     teeOverrides: new Map(),
     pointsParticipation: new Map([["player-a", true]]),
     groupAssignments: new Map([["player-a", 2], ["player-b", 1]]),
+    roundHandicapOverrides: new Map([["player-a", -2.3]]),
     rows: [],
     appendChild(row) {
       this.rows.push(row);
@@ -65,6 +66,8 @@ const playerA = settings.players.find((player) => player.id === "player-a");
 const playerB = settings.players.find((player) => player.id === "player-b");
 
 assertEqual(playerA.inPoints, true, "Selected player checked into Points Game");
+assertEqual(playerA.handicap, -2.3, "Pre-round setup applies a plus handicap override to this round");
+assertEqual(playerA.handicapIndex, -2.3, "Round Handicap Index stays signed for course calculations");
 assertEqual(playerB.inPoints, false, "Selected player not checked into Points Game");
 assertEqual(settings.games.pointsGame.enabled, true, "Points Game enabled when at least one player is checked in");
 assertEqual(settings.groups.length, 2, "Setup creates the selected groups");
@@ -78,4 +81,3 @@ assertEqual(settingsWithoutPoints.players.every((player) => player.inPoints === 
 assertEqual(settingsWithoutPoints.games.pointsGame.enabled, false, "Points Game disabled when no players are checked in");
 
 console.log("Setup participation test passed.");
-

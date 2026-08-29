@@ -25,7 +25,17 @@ const automatic = rules.getPlayingHandicaps(players, handicaps, {
 assertEqual(automatic.a1, 0, "Lowest course handicap plays from zero");
 assertEqual(automatic.a2, 5, "90 percent allowance applies to the difference");
 assertEqual(automatic.b1, 7, "Automatic playing handicap rounds to the nearest integer");
-assertEqual(automatic.b2, 13, "Highest player receives the adjusted difference");
+assertEqual(automatic.b2, 12, "Allowance is applied before handicaps are adjusted relative to the lowest player");
+const plusPlayers = [
+  { id: "plus", name: "Plus", tee: "white", matchTeam: "A" },
+  { id: "five", name: "Five", tee: "white", matchTeam: "B" }
+];
+const plusMatch = rules.getPlayingHandicaps(plusPlayers, { plus: -3, five: 5 }, {
+  format: "four-ball-match",
+  fourBallMatch: { scoring: "net", handicapSource: "automatic", allowance: 100 }
+});
+assertEqual(plusMatch.plus, 0, "Plus-three player plays from zero in match play");
+assertEqual(plusMatch.five, 8, "Five handicap receives the eight-stroke difference from plus three");
 assertEqual(rules.getStrokesOnHole(20, 1), 2, "Playing handicaps above 18 receive second strokes in rank order");
 assertEqual(rules.getStrokesOnHole(20, 3), 1, "Second strokes stop after the remainder");
 

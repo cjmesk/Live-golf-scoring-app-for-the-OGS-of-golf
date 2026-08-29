@@ -15,6 +15,10 @@ assertIncludes(html, '<h2 id="groupSetupTitle">Build Foursomes</h2>',
   "The pre-round group screen must identify itself as the foursome builder");
 assertIncludes(html, 'id="beginGroupedRound" type="button" class="save-button">Review Foursomes</button>',
   "Foursomes must be reviewed before the Start Round confirmation");
+assertIncludes(html, "confirm each round index, tee, playing group, Points, and Skins before continuing",
+  "Pre-round setup must identify every setting the commissioner can finalize");
+assertIncludes(html, "OG&apos;s Golf v0.10.0 Pre-Round Setup Beta",
+  "The visible beta version must identify the pre-round setup release");
 
 const foursomeButtonIndex = html.indexOf('id="startRound"');
 const startRoundConfirmationIndex = html.indexOf('id="confirmStartRound"');

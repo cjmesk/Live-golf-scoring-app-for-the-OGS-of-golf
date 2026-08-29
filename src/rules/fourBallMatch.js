@@ -5,7 +5,7 @@ window.OGSGolf.rules = window.OGSGolf.rules || {};
   function roundHandicap(value) {
     const numericValue = Number(value);
     if (!Number.isFinite(numericValue)) return 0;
-    return Math.round(numericValue);
+    return numericValue < 0 ? -Math.round(Math.abs(numericValue)) : Math.round(numericValue);
   }
 
   function getSettings(roundSettings = {}) {
@@ -40,21 +40,18 @@ window.OGSGolf.rules = window.OGSGolf.rules || {};
       return handicaps;
     }
 
-    if (settings.handicapSource === "manual") {
-      players.forEach((player) => {
-        handicaps[player.id] = roundHandicap(player.matchPlayingHandicap);
-      });
-      return handicaps;
-    }
-
-    const values = players.map((player) => Number(courseHandicaps[player.id] ?? player.courseHandicap ?? 0));
+    const adjustedHandicaps = {};
+    players.forEach((player) => {
+      const baseHandicap = settings.handicapSource === "manual"
+        ? Number(player.matchPlayingHandicap)
+        : Number(courseHandicaps[player.id] ?? player.courseHandicap ?? 0) * (settings.allowance / 100) * (settings.holes / 18);
+      adjustedHandicaps[player.id] = roundHandicap(baseHandicap);
+    });
+    const values = Object.values(adjustedHandicaps);
     const lowest = values.length ? Math.min(...values) : 0;
 
     players.forEach((player) => {
-      const courseHandicap = Number(courseHandicaps[player.id] ?? player.courseHandicap ?? 0);
-      handicaps[player.id] = roundHandicap(
-        (courseHandicap - lowest) * (settings.allowance / 100) * (settings.holes / 18)
-      );
+      handicaps[player.id] = adjustedHandicaps[player.id] - lowest;
     });
 
     return handicaps;

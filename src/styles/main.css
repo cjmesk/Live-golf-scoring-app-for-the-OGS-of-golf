@@ -309,6 +309,39 @@ body.is-scoring h1 {
   opacity: 0.62;
 }
 
+.today-change-groups {
+  min-height: 52px;
+  border-width: 2px;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.player-group-list {
+  display: grid;
+  gap: 8px;
+}
+
+.player-group-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(145px, 0.8fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.player-group-row strong {
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .player-group-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .score-nav {
   display: grid;
   gap: 10px;

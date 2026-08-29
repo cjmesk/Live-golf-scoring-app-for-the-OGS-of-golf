@@ -1,6 +1,14 @@
 window.OGSGolf = window.OGSGolf || {};
 window.OGSGolf.ui = window.OGSGolf.ui || {};
 
+function formatLeaderboardHandicap(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  return window.OGSGolf.ui.formatHandicapIndex
+    ? window.OGSGolf.ui.formatHandicapIndex(number)
+    : (number < 0 ? `+${Math.abs(number)}` : String(number));
+}
+
 window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, players, roundState) {
   const pointsEnabled = roundState.roundSettings.games.pointsGame.enabled;
   const skinsEnabled = roundState.roundSettings.games.netSkins?.enabled === true;
@@ -90,7 +98,7 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
       <div class="rank">${standing.rankLabel}</div>
       <div>
         ${renderPlayerNameButton(player)}
-        <div class="player-details">Index ${player.handicap} | Course Handicap ${roundState.courseHandicaps[player.id]} | ${player.tee} tees</div>
+        <div class="player-details">Index ${formatLeaderboardHandicap(player.handicap)} | Course Handicap ${formatLeaderboardHandicap(roundState.courseHandicaps[player.id])} | ${player.tee} tees</div>
         <div class="player-details">${isDnf ? dnfText : `${totals.holesPlayed}/${totalHoles} holes saved`}</div>
         <div class="player-details">${getGameStatus(player)}</div>
       </div>

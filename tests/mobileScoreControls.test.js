@@ -14,7 +14,7 @@ if (!stepButtonRule.includes("user-select: none;") || !stepButtonRule.includes("
   throw new Error("Repeated score taps must not select text or open the iOS touch callout.");
 }
 
-if (!htmlSource.includes("src/styles/main.css?v=20260823-game-participation")) {
+if (!htmlSource.includes("src/styles/main.css?v=20260829-active-round-usga")) {
   throw new Error("The mobile score-control CSS fix must use a fresh cache version.");
 }
 

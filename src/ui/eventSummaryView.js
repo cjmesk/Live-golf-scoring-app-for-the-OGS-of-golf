@@ -5,9 +5,15 @@ window.OGSGolf.ui.renderEventSummary = function renderEventSummary(elements, rou
   const groupRows = roundSettings.groups
     .map((group, index) => {
       const playerNames = group
-        .map((playerId) => roundSettings.players.find((player) => player.id === playerId)?.name)
+        .map((playerId) => {
+          const player = roundSettings.players.find((item) => item.id === playerId);
+          if (!player) return "";
+          const index = window.OGSGolf.ui.formatHandicapIndex?.(player.handicap) ?? player.handicap;
+          const games = [player.inPoints ? "Points" : "", player.inSkins ? "Skins" : ""].filter(Boolean).join(" + ") || "No money games";
+          return `${player.name} — Index ${index} — ${player.tee} tees — ${games}`;
+        })
         .filter(Boolean)
-        .join(", ");
+        .join("<br>");
       const scorer = roundSettings.players.find((player) => player.id === roundSettings.groupScorers?.[index]);
 
       return `

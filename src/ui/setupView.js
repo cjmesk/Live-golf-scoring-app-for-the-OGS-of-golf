@@ -39,6 +39,16 @@ function formatSetupHandicapIndex(value) {
     : String(value);
 }
 
+function parseSetupHandicapIndex(value) {
+  if (window.OGSGolf.ui.parseHandicapIndex) {
+    return window.OGSGolf.ui.parseHandicapIndex(value);
+  }
+  const text = String(value ?? "").trim();
+  const numericValue = Number(text.startsWith("+") ? text.slice(1) : text);
+  if (!Number.isFinite(numericValue)) return null;
+  return text.startsWith("+") ? -Math.abs(numericValue) : numericValue;
+}
+
 window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, members) {
   elements.courseSelect.innerHTML = courses
     .map((course) => `<option value="${course.id}">${course.name}</option>`)
@@ -55,6 +65,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
   const matchTeams = elements.memberList.matchTeams || new Map();
   const manualMatchHandicaps = elements.memberList.manualMatchHandicaps || new Map();
   const groupAssignments = elements.memberList.groupAssignments || new Map();
+  const roundHandicapOverrides = elements.memberList.roundHandicapOverrides || new Map();
   elements.memberList.selectedMemberIds = selectedMemberIds;
   elements.memberList.teeOverrides = teeOverrides;
   elements.memberList.pointsParticipation = pointsParticipation;
@@ -62,6 +73,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
   elements.memberList.matchTeams = matchTeams;
   elements.memberList.manualMatchHandicaps = manualMatchHandicaps;
   elements.memberList.groupAssignments = groupAssignments;
+  elements.memberList.roundHandicapOverrides = roundHandicapOverrides;
   elements.gameList.innerHTML = "";
   elements.teamAssignmentPanel.classList.add("is-hidden");
   elements.teamAssignmentList.innerHTML = "";
@@ -104,6 +116,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
       const groupNumber = Math.max(1, Math.min(8, Number(groupAssignments.get(member.id) || defaultGroupNumber)));
       const defaultTeam = selectedIndex >= 2 ? "B" : "A";
       const matchTeam = matchTeams.get(member.id) || defaultTeam;
+      const roundHandicap = roundHandicapOverrides.get(member.id) ?? member.handicap;
       const row = document.createElement("div");
       row.className = "member-row";
       row.innerHTML = `
@@ -123,6 +136,10 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
           </select>
         </label>
         ${isPlayingToday ? `
+          <label class="tee-select-label">
+            <span>Round Index</span>
+            <input class="field-control" data-round-handicap-for="${member.id}" type="text" inputmode="decimal" value="${formatSetupHandicapIndex(roundHandicap)}" aria-label="Round handicap index for ${member.name}">
+          </label>
           <label class="tee-select-label">
             <span>Playing Group</span>
             <select class="field-control" data-group-for="${member.id}">
@@ -147,7 +164,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
           ${manualMatchHandicapsEnabled ? `
             <label class="tee-select-label">
               <span>Playing HCP</span>
-              <input class="field-control" data-match-handicap-for="${member.id}" type="number" step="1" value="${manualMatchHandicaps.get(member.id) ?? member.courseHandicap ?? member.handicap ?? 0}">
+              <input class="field-control" data-match-handicap-for="${member.id}" type="text" inputmode="decimal" value="${formatSetupHandicapIndex(manualMatchHandicaps.get(member.id) ?? member.courseHandicap ?? roundHandicap)}">
             </label>
           ` : ""}
         ` : ""}
@@ -173,6 +190,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
     const matchTeamSelect = event.target.closest("[data-match-team-for]");
     const matchHandicapInput = event.target.closest("[data-match-handicap-for]");
     const groupSelect = event.target.closest("[data-group-for]");
+    const roundHandicapInput = event.target.closest("[data-round-handicap-for]");
 
     if (checkbox?.checked) {
       selectedMemberIds.add(checkbox.dataset.memberId);
@@ -183,6 +201,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
       matchTeams.delete(checkbox.dataset.memberId);
       manualMatchHandicaps.delete(checkbox.dataset.memberId);
       groupAssignments.delete(checkbox.dataset.memberId);
+      roundHandicapOverrides.delete(checkbox.dataset.memberId);
     }
 
     if (teeSelect) {
@@ -198,8 +217,27 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
     }
 
     if (matchTeamSelect) matchTeams.set(matchTeamSelect.dataset.matchTeamFor, matchTeamSelect.value);
-    if (matchHandicapInput) manualMatchHandicaps.set(matchHandicapInput.dataset.matchHandicapFor, Number(matchHandicapInput.value));
+    if (matchHandicapInput) {
+      const parsedMatchHandicap = parseSetupHandicapIndex(matchHandicapInput.value);
+      if (parsedMatchHandicap !== null) {
+        manualMatchHandicaps.set(matchHandicapInput.dataset.matchHandicapFor, parsedMatchHandicap);
+        matchHandicapInput.value = formatSetupHandicapIndex(parsedMatchHandicap);
+      }
+    }
     if (groupSelect) groupAssignments.set(groupSelect.dataset.groupFor, Number(groupSelect.value));
+    if (roundHandicapInput) {
+      const parsedHandicap = parseSetupHandicapIndex(roundHandicapInput.value);
+      if (parsedHandicap === null || parsedHandicap < -10 || parsedHandicap > 54) {
+        roundHandicapInput.value = formatSetupHandicapIndex(
+          roundHandicapOverrides.get(roundHandicapInput.dataset.roundHandicapFor)
+            ?? members.find((member) => member.id === roundHandicapInput.dataset.roundHandicapFor)?.handicap
+            ?? 0
+        );
+      } else {
+        roundHandicapOverrides.set(roundHandicapInput.dataset.roundHandicapFor, parsedHandicap);
+        roundHandicapInput.value = formatSetupHandicapIndex(parsedHandicap);
+      }
+    }
 
     updateSelectedCount();
     if (checkbox) {
@@ -237,6 +275,7 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
   const matchTeams = elements.memberList.matchTeams || new Map();
   const manualMatchHandicaps = elements.memberList.manualMatchHandicaps || new Map();
   const groupAssignments = elements.memberList.groupAssignments || new Map();
+  const roundHandicapOverrides = elements.memberList.roundHandicapOverrides || new Map();
   const roundDate = elements.roundDate.value || getTodayInputValue();
   const enteredRoundName = elements.roundName.value.trim();
   const roundName = enteredRoundName || `${course.name} - ${roundDate}`;
@@ -260,6 +299,8 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
     .filter((member) => selectedMemberIds.has(member.id))
     .map((member, selectedIndex) => ({
       ...member,
+      handicap: Number(roundHandicapOverrides.get(member.id) ?? member.handicap ?? 0),
+      handicapIndex: Number(roundHandicapOverrides.get(member.id) ?? member.handicapIndex ?? member.handicap ?? 0),
       tee: getValidCourseTeeId(course, teeOverrides.get(member.id) || member.tee),
       inSkins: skinsParticipation.get(member.id) === true,
       inPoints: pointsParticipation.get(member.id) === true,
@@ -267,7 +308,7 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
       teamId: "",
       matchTeam: format === "four-ball-match" ? (matchTeams.get(member.id) || (selectedIndex < 2 ? "A" : "B")) : "",
       matchPlayingHandicap: format === "four-ball-match" && fourBallMatch.handicapSource === "manual"
-        ? Number(manualMatchHandicaps.get(member.id) ?? member.courseHandicap ?? member.handicap ?? 0)
+        ? Number(manualMatchHandicaps.get(member.id) ?? roundHandicapOverrides.get(member.id) ?? member.courseHandicap ?? member.handicap ?? 0)
         : null,
       setupGroupNumber: format === "four-ball-match"
         ? 1

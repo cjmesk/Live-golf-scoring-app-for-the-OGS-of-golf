@@ -899,9 +899,6 @@ window.OGSGolf.state.createRoundState = function createRoundState(
   }
 
   function isRoundComplete() {
-    const matchSummary = getFourBallMatchSummary();
-    if (matchSummary?.settings.enabled) return matchSummary.complete;
-
     return players.every((player) =>
       isPlayerDnf(player) || savedScores[player.id].every((score, holeIndex) =>
         !isHoleRequiredForPlayer(player, holeIndex) || score !== null
@@ -1570,6 +1567,51 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     loadDraftScores();
   }
 
+  function reassignPlayerGroups(nextGroups = [], joinHolesByPlayerId = {}) {
+    const playerIds = players.map((player) => player.id);
+    const assignedPlayerIds = nextGroups.flat();
+    const validAssignment = nextGroups.length === (roundSettings.groups || []).length
+      && assignedPlayerIds.length === playerIds.length
+      && new Set(assignedPlayerIds).size === playerIds.length
+      && playerIds.every((playerId) => assignedPlayerIds.includes(playerId));
+
+    if (!validAssignment) return { ok: false, movedPlayers: [] };
+
+    const previousGroupByPlayerId = new Map();
+    (roundSettings.groups || []).forEach((group, groupIndex) => {
+      group.forEach((playerId) => previousGroupByPlayerId.set(playerId, groupIndex));
+    });
+
+    const normalizedGroups = nextGroups.map((group) => [...group]);
+    const movedPlayers = [];
+
+    players.forEach((player) => {
+      const fromGroupIndex = previousGroupByPlayerId.get(player.id);
+      const toGroupIndex = normalizedGroups.findIndex((group) => group.includes(player.id));
+      if (fromGroupIndex === toGroupIndex) return;
+
+      const joinHole = Number(joinHolesByPlayerId[player.id]);
+      if (Number.isInteger(joinHole) && joinHole > 0 && joinHole <= totalHoles) {
+        player.lateJoinHole = joinHole;
+      }
+      movedPlayers.push({ playerId: player.id, fromGroupIndex, toGroupIndex, joinHole: player.lateJoinHole || null });
+    });
+
+    roundSettings.groups = normalizedGroups;
+    const previousScorers = [...(roundSettings.groupScorers || [])];
+    roundSettings.groupScorers = normalizedGroups.map((group, groupIndex) =>
+      group.includes(previousScorers[groupIndex]) ? previousScorers[groupIndex] : (group[0] || "")
+    );
+    roundSettings.groupRecords = normalizedGroups.map((group, groupIndex) => ({
+      ...(roundSettings.groupRecords?.[groupIndex] || {}),
+      playerIds: [...group],
+      scorekeeperId: roundSettings.groupScorers[groupIndex]
+    }));
+    roundSettings.players = players;
+
+    return { ok: true, movedPlayers, groups: normalizedGroups };
+  }
+
   function applyCloudPlayerStatuses(statusRows = []) {
     if (statusRows.length === 0) {
       roundSettings.playerStatuses = playerStatuses;
@@ -1707,6 +1749,7 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     updateRoundPlayerHandicap,
     updateRoundPlayerTee,
     applyCloudRoundPlayers,
+    reassignPlayerGroups,
     applyCloudPlayerStatuses,
     markPlayerDnf,
     restorePlayerActive,
