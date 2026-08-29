@@ -3703,6 +3703,12 @@ function updateGroupCount(amount) {
   const nextCount = Math.max(1, currentCount + amount);
   pendingRoundSettings.groups = currentGroups;
   pendingRoundSettings.groupCount = nextCount;
+  currentGroups.forEach((group, groupIndex) => {
+    group.forEach((playerId) => {
+      const player = pendingRoundSettings.players.find((item) => item.id === playerId);
+      if (player) player.setupGroupNumber = groupIndex + 1;
+    });
+  });
   renderGroupSetupView(elements, pendingRoundSettings);
 }
 
@@ -3710,6 +3716,13 @@ function refreshScorekeeperChoices() {
   if (!pendingRoundSettings) return;
 
   const groups = readGroupAssignments(elements, pendingRoundSettings.players);
+  pendingRoundSettings.groups = groups;
+  groups.forEach((group, groupIndex) => {
+    group.forEach((playerId) => {
+      const player = pendingRoundSettings.players.find((item) => item.id === playerId);
+      if (player) player.setupGroupNumber = groupIndex + 1;
+    });
+  });
   renderGroupScorerOptions(elements, pendingRoundSettings.players, groups);
 }
 

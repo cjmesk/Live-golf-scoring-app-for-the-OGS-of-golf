@@ -55,7 +55,9 @@ window.OGSGolf.ui.renderGroupSetupView = function renderGroupSetupView(elements,
     .map((player, index) => {
       const currentGroup = Math.min(
         groupCount,
-        getExistingGroupNumber(player.id, existingGroups) || getDefaultGroupNumber(index, players.length)
+        Number(player.setupGroupNumber)
+          || getExistingGroupNumber(player.id, existingGroups)
+          || getDefaultGroupNumber(index, players.length)
       );
       const options = Array.from({ length: groupCount }, (_, groupIndex) => groupIndex + 1)
         .map((groupNumber) => `
