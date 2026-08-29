@@ -355,6 +355,38 @@ window.OGSGolf.ui.readSetupSettings = function readSetupSettings(elements, cours
   };
 };
 
+window.OGSGolf.ui.restoreSetupSelections = function restoreSetupSelections(elements, roundSettings) {
+  const players = roundSettings?.players || [];
+  const groupAssignments = new Map();
+
+  (roundSettings?.groups || []).forEach((group, groupIndex) => {
+    group.forEach((playerId) => groupAssignments.set(playerId, groupIndex + 1));
+  });
+
+  players.forEach((player) => {
+    if (!groupAssignments.has(player.id)) {
+      groupAssignments.set(player.id, Number(player.setupGroupNumber) || 1);
+    }
+  });
+
+  elements.memberList.selectedMemberIds = new Set(players.map((player) => player.id));
+  elements.memberList.teeOverrides = new Map(players.map((player) => [player.id, player.tee]));
+  elements.memberList.pointsParticipation = new Map(players.map((player) => [player.id, player.inPoints === true]));
+  elements.memberList.skinsParticipation = new Map(players.map((player) => [player.id, player.inSkins === true]));
+  elements.memberList.matchTeams = new Map(players.map((player) => [player.id, player.matchTeam || ""]));
+  elements.memberList.manualMatchHandicaps = new Map(players
+    .filter((player) => Number.isFinite(Number(player.matchPlayingHandicap)))
+    .map((player) => [player.id, Number(player.matchPlayingHandicap)]));
+  elements.memberList.groupAssignments = groupAssignments;
+  elements.memberList.roundHandicapOverrides = new Map(players.map((player) => [player.id, Number(player.handicap ?? 0)]));
+
+  if (elements.roundDate) elements.roundDate.value = roundSettings?.date || "";
+  if (elements.roundName) elements.roundName.value = roundSettings?.roundName || "";
+  if (elements.roundFormat) elements.roundFormat.value = roundSettings?.format === "four-ball-match" ? "four-ball-match" : "standard";
+  if (elements.pointsGameAmount) elements.pointsGameAmount.value = String(roundSettings?.games?.pointsGame?.amount ?? 15);
+  if (elements.skinsGameAmount) elements.skinsGameAmount.value = String(roundSettings?.games?.netSkins?.amount ?? 5);
+};
+
 window.OGSGolf.ui.renderRoundSettingsSummary = function renderRoundSettingsSummary(elements, roundSettings) {
   const groupsText = roundSettings.groups
     .map((group, index) => `Group ${index + 1}: ${group.length}`)
