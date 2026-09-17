@@ -62,6 +62,91 @@ async function upsertRestRows({ table, rows, onConflict, config }) {
   return { ok: true, rows: await response.json() };
 }
 
+async function fetchRoundPlayerRows(roundId, config) {
+  const response = await fetch(
+    `${config.url}/rest/v1/round_players?select=player_id,playing&round_id=eq.${encodeURIComponent(roundId)}`,
+    {
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`
+      }
+    }
+  );
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Round roster lookup failed. ${details || ""}`.trim());
+  }
+
+  return response.json();
+}
+
+async function retireRoundPlayer({ roundId, playerId, config }) {
+  const scoreResponse = await fetch(
+    `${config.url}/rest/v1/hole_scores?round_id=eq.${encodeURIComponent(roundId)}&player_id=eq.${encodeURIComponent(playerId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`
+      }
+    }
+  );
+
+  if (!scoreResponse.ok) {
+    const details = await scoreResponse.text();
+    throw new Error(`hole_scores cleanup failed. ${details || ""}`.trim());
+  }
+
+  const playerResponse = await fetch(
+    `${config.url}/rest/v1/round_players?round_id=eq.${encodeURIComponent(roundId)}&player_id=eq.${encodeURIComponent(playerId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        playing: false,
+        points_enabled: false,
+        skins_enabled: false,
+        group_id: null
+      })
+    }
+  );
+
+  if (!playerResponse.ok) {
+    const details = await playerResponse.text();
+    throw new Error(`round_players retirement failed. ${details || ""}`.trim());
+  }
+}
+
+async function reconcileActiveRoundRoster({ roundId, activePlayerIds, config }) {
+  const activeIds = new Set(activePlayerIds || []);
+  const storedPlayerRows = await fetchRoundPlayerRows(roundId, config);
+  const obsoletePlayerIds = storedPlayerRows
+    .filter((row) => row.playing !== false && !activeIds.has(row.player_id))
+    .map((row) => row.player_id);
+
+  for (const playerId of obsoletePlayerIds) {
+    await retireRoundPlayer({ roundId, playerId, config });
+  }
+
+  if (obsoletePlayerIds.length > 0) {
+    const remainingActivePlayerIds = (await fetchRoundPlayerRows(roundId, config))
+      .filter((row) => row.playing !== false)
+      .map((row) => row.player_id);
+    const cleanupFailed = obsoletePlayerIds.some((playerId) => remainingActivePlayerIds.includes(playerId));
+
+    if (cleanupFailed) {
+      throw new Error("Obsolete players remain active after active-round roster cleanup.");
+    }
+  }
+
+  return { ok: true, removedPlayerIds: obsoletePlayerIds };
+}
+
 window.OGSGolf.cloud.roundCloudService = {
   async loadActiveRound() {
     const config = window.OGSGolf.cloud.supabaseConfig;
@@ -194,6 +279,11 @@ window.OGSGolf.cloud.roundCloudService = {
           table: "round_players",
           rows: roundPlayerRows,
           onConflict: "round_id,player_id",
+          config
+        });
+        await reconcileActiveRoundRoster({
+          roundId: activeRoundData.id,
+          activePlayerIds: roundPlayerRows.map((row) => row.player_id),
           config
         });
       } catch (detailError) {
@@ -671,7 +761,7 @@ window.OGSGolf.cloud.roundCloudService.fetchRoundPlayers = async function fetchR
 
   try {
     const response = await fetch(
-      `${config.url}/rest/v1/round_players?select=*&round_id=eq.${encodeURIComponent(roundId)}&order=player_id.asc`,
+      `${config.url}/rest/v1/round_players?select=*&round_id=eq.${encodeURIComponent(roundId)}&playing=eq.true&order=player_id.asc`,
       {
         headers: {
           apikey: config.anonKey,
