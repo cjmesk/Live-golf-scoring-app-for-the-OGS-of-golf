@@ -30,7 +30,7 @@ function getValidCourseTeeId(course, teeId) {
     return teeId;
   }
 
-  return course.teeOrder[0];
+  return course.defaultTeeId || course.teeOrder[0];
 }
 
 function formatSetupHandicapIndex(value) {

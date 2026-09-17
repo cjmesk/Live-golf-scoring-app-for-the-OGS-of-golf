@@ -46,6 +46,15 @@ const parkMammothBlackYardages = [394, 318, 564, 452, 203, 410, 164, 348, 308, 3
 const parkMammothYellowYardages = [358, 291, 512, 359, 195, 354, 140, 280, 254, 303, 96, 365, 324, 320, 335, 205, 451, 284];
 const parkMammothRedYardages = [313, 215, 487, 289, 164, 312, 118, 250, 218, 256, 80, 315, 273, 292, 303, 147, 396, 236];
 
+const fightingJoeParByHole = [5, 4, 4, 4, 3, 4, 5, 4, 3, 4, 4, 5, 3, 4, 4, 4, 5, 3];
+const fightingJoeHandicapByHole = [3, 9, 7, 13, 15, 5, 1, 11, 17, 6, 14, 2, 16, 10, 12, 8, 4, 18];
+const fightingJoeBlackYardages = [611, 466, 478, 426, 236, 497, 607, 477, 236, 489, 413, 716, 223, 476, 466, 483, 592, 200];
+const fightingJoePurpleYardages = [567, 413, 416, 379, 193, 468, 576, 434, 190, 468, 389, 622, 195, 417, 397, 437, 537, 158];
+const fightingJoeOrangeYardages = [540, 388, 396, 360, 175, 432, 537, 406, 157, 428, 345, 581, 184, 403, 379, 423, 483, 151];
+const fightingJoeWhiteYardages = [512, 370, 373, 326, 160, 408, 524, 375, 145, 412, 332, 505, 163, 369, 353, 390, 440, 137];
+const fightingJoeGoldYardages = [400, 347, 324, 313, 137, 330, 467, 332, 118, 357, 310, 450, 153, 319, 326, 370, 416, 126];
+const fightingJoeTealYardages = [390, 302, 316, 279, 133, 325, 408, 283, 101, 256, 255, 441, 136, 244, 260, 304, 377, 101];
+
 window.OGSGolf.data.courses = [
   {
     id: "twelve-stones",
@@ -116,6 +125,43 @@ window.OGSGolf.data.courses = [
         parkMammothParByHole,
         parkMammothHandicapByHole
       )
+    }
+  },
+  {
+    id: "fighting-joe",
+    name: "The Fighting Joe at The Shoals",
+    par: 72,
+    scorecardSource: "https://www.rtjgolf.com/scorecards",
+    defaultTeeId: "white",
+    teeOrder: ["black", "purple", "orange", "white", "gold", "teal"],
+    teeRatings: {
+      black: buildTeeSummary("Black", fightingJoeBlackYardages, 78.6, 146, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 78.6, slopeRating: 146 }
+      }, fightingJoeParByHole),
+      purple: buildTeeSummary("Purple", fightingJoePurpleYardages, 74.5, 139, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 74.5, slopeRating: 139 }
+      }, fightingJoeParByHole),
+      orange: buildTeeSummary("Orange", fightingJoeOrangeYardages, 72.1, 134, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 72.1, slopeRating: 134 }
+      }, fightingJoeParByHole),
+      white: buildTeeSummary("White", fightingJoeWhiteYardages, 70.0, 124, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 70.0, slopeRating: 124 }
+      }, fightingJoeParByHole),
+      gold: buildTeeSummary("Gold", fightingJoeGoldYardages, 67.6, 120, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 67.6, slopeRating: 120 }
+      }, fightingJoeParByHole),
+      teal: buildTeeSummary("Teal", fightingJoeTealYardages, 64.2, 113, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 64.2, slopeRating: 113 },
+        women: { courseRating: 69.1, slopeRating: 117 }
+      }, fightingJoeParByHole)
+    },
+    tees: {
+      black: buildTeeHoles(fightingJoeBlackYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole),
+      purple: buildTeeHoles(fightingJoePurpleYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole),
+      orange: buildTeeHoles(fightingJoeOrangeYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole),
+      white: buildTeeHoles(fightingJoeWhiteYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole),
+      gold: buildTeeHoles(fightingJoeGoldYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole),
+      teal: buildTeeHoles(fightingJoeTealYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole)
     }
   }
 ];
