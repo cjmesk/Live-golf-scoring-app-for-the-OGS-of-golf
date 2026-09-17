@@ -3,7 +3,7 @@ const path = require("path");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
 const functionStart = appSource.indexOf("async function saveHoleScoresToCloud");
-const functionEnd = appSource.indexOf("\nfunction mergeActiveRound", functionStart);
+const functionEnd = appSource.indexOf("\nasync function autoSaveUnfinishedRound", functionStart);
 const saveHoleSource = appSource.slice(functionStart, functionEnd);
 
 if (functionStart < 0 || functionEnd < 0) {

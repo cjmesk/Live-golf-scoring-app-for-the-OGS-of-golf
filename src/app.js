@@ -1124,7 +1124,7 @@ async function savePlayerGroupChanges() {
 
   roundSettings = roundState.roundSettings;
   syncAllGroupCompletionsFromScores();
-  await autoSaveUnfinishedRound();
+  await autoSaveUnfinishedRound(undefined, undefined, { preferLocalSetup: true });
   elements.savePlayerGroupChanges.disabled = false;
   closePlayerGroupForm();
   renderTodayRoundScreen();
@@ -1250,7 +1250,7 @@ async function saveGameParticipation() {
 
   syncActiveRoundPlayerSnapshot(update.player);
   const roundPlayerResult = await roundCloudService.upsertRoundPlayer(buildRoundPlayerCloudRow(update.player));
-  const savedRound = await autoSaveUnfinishedRound();
+  const savedRound = await autoSaveUnfinishedRound(undefined, undefined, { preferLocalSetup: true });
   const payoutSummary = update.payoutSummary;
   const pointsPot = payoutSummary?.points?.totalPot || 0;
   const skinsPot = payoutSummary?.skins?.totalPot || 0;
@@ -1395,7 +1395,7 @@ async function saveLatePlayer() {
     skins_enabled: player.inSkins === true,
     points_enabled: player.inPoints === true
   });
-  const savedRound = await autoSaveUnfinishedRound();
+  const savedRound = await autoSaveUnfinishedRound(undefined, undefined, { preferLocalSetup: true });
 
   elements.saveLatePlayer.disabled = false;
 
@@ -2187,7 +2187,7 @@ async function saveHandicapAdjust() {
     return;
   }
 
-  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex);
+  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex, { preferLocalSetup: true });
   elements.saveHandicapAdjust.disabled = false;
   closeHandicapAdjust();
   renderApp();
@@ -2241,7 +2241,7 @@ async function saveTeeChange() {
     return;
   }
 
-  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex);
+  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex, { preferLocalSetup: true });
   elements.saveTeeChange.disabled = false;
   closeTeeChange();
   renderApp();
@@ -2258,7 +2258,7 @@ async function confirmPlayerDnf() {
 
   if (!status || !player) return;
 
-  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex);
+  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex, { preferLocalSetup: true });
   renderApp();
   elements.saveStatusMessage.textContent =
     `${player.name}: DNF - ${status.holesCompleted} holes - ${status.grossStrokes} strokes`;
@@ -2280,7 +2280,7 @@ async function restorePlayerToActive(playerId) {
     setCurrentHoleForGroup(currentGroupIndex, missingHole);
   }
 
-  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex);
+  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex, { preferLocalSetup: true });
   renderApp();
   elements.saveStatusMessage.textContent = `${player.name} restored to active scoring.`;
 }
@@ -3023,58 +3023,18 @@ async function saveHoleScoresToCloud({ playersToScore, holeNumber, groupIndex })
   };
 }
 
-function mergeActiveRound(localRound, cloudRound, savedGroupIndex, savedHoleIndex) {
-  if (!cloudRound || cloudRound.id !== localRound.id || savedGroupIndex === undefined || savedHoleIndex === undefined) {
-    return localRound;
-  }
-
-  const mergedRound = {
-    ...cloudRound,
-    roundSettings: {
-      ...(cloudRound.roundSettings || {}),
-      ...(localRound.roundSettings || {}),
-      playerStatuses: localRound.roundSettings?.playerStatuses || cloudRound.roundSettings?.playerStatuses || {},
-      groupRecords: localRound.roundSettings?.groupRecords || cloudRound.roundSettings?.groupRecords || []
-    },
-    currentGroupIndex: localRound.currentGroupIndex,
-    currentHoleIndex: localRound.currentHoleIndex,
-    currentHole: localRound.currentHole,
-    players: localRound.players || cloudRound.players || [],
-    groupHoleIndexes: [...(cloudRound.groupHoleIndexes || localRound.groupHoleIndexes || [])],
-    playerStatuses: localRound.playerStatuses || cloudRound.playerStatuses || {},
-    savedScores: {
-      ...(cloudRound.savedScores || {})
-    },
-    savedHoleResults: [...(cloudRound.savedHoleResults || localRound.savedHoleResults || [])]
-  };
-  const savedPlayerIds = new Set(roundSettings.groups[savedGroupIndex] || []);
-
-  mergedRound.groupHoleIndexes[savedGroupIndex] = localRound.groupHoleIndexes[savedGroupIndex];
-
-  savedPlayerIds.forEach((playerId) => {
-    mergedRound.savedScores[playerId] = [
-      ...((cloudRound.savedScores || localRound.savedScores)[playerId] || localRound.savedScores[playerId])
-    ];
-    mergedRound.savedScores[playerId][savedHoleIndex] = localRound.savedScores[playerId][savedHoleIndex];
-  });
-
-  const cloudHoleResults = mergedRound.savedHoleResults[savedHoleIndex] || [];
-  const localHoleResults = localRound.savedHoleResults[savedHoleIndex] || [];
-  mergedRound.savedHoleResults[savedHoleIndex] = [
-    ...cloudHoleResults.filter((result) => !savedPlayerIds.has(result.playerId)),
-    ...localHoleResults.filter((result) => savedPlayerIds.has(result.playerId))
-  ];
-  mergedRound.skinResults = cloudRound.skinResults || localRound.skinResults;
-
-  return mergedRound;
-}
-
-async function autoSaveUnfinishedRound(savedGroupIndex, savedHoleIndex) {
+async function autoSaveUnfinishedRound(savedGroupIndex, savedHoleIndex, { preferLocalSetup = false } = {}) {
   if (!roundState || completedRoundSaved) return;
 
   const autoSaveData = getActiveRoundAutoSaveExport();
   const cloudResult = await roundCloudService.loadActiveRound();
-  const mergedData = mergeActiveRound(autoSaveData, cloudResult.round, savedGroupIndex, savedHoleIndex);
+  const mergedData = window.OGSGolf.state.roundSync.mergeActiveRound({
+    localRound: autoSaveData,
+    cloudRound: cloudResult.round,
+    savedGroupIndex,
+    savedHoleIndex,
+    preferLocalSetup
+  });
   roundStorage.saveUnfinished(mergedData);
   const saveResult = await roundCloudService.saveActiveRound(mergedData);
   const savedData = saveResult.ok && saveResult.round ? saveResult.round : mergedData;
@@ -3659,7 +3619,7 @@ function undoLastHole() {
   setActiveScreen("round");
   syncRoundStateToCurrentGroup();
   renderApp();
-  autoSaveUnfinishedRound();
+  autoSaveUnfinishedRound(undefined, undefined, { preferLocalSetup: true });
   scrollToScoring();
 }
 
@@ -4541,7 +4501,7 @@ async function confirmFinishRoundEarly() {
   closeFinishRoundEarlyConfirm();
   finishGroupEarly(currentGroupIndex);
   syncRoundStateToCurrentGroup();
-  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex);
+  await autoSaveUnfinishedRound(currentGroupIndex, roundState.currentHoleIndex, { preferLocalSetup: true });
   renderApp();
 
   const fullRoundCompleted = await completeFullRoundIfReady("finish-round-early");
