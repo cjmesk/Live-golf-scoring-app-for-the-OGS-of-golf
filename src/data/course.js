@@ -55,6 +55,15 @@ const fightingJoeWhiteYardages = [512, 370, 373, 326, 160, 408, 524, 375, 145, 4
 const fightingJoeGoldYardages = [400, 347, 324, 313, 137, 330, 467, 332, 118, 357, 310, 450, 153, 319, 326, 370, 416, 126];
 const fightingJoeTealYardages = [390, 302, 316, 279, 133, 325, 408, 283, 101, 256, 255, 441, 136, 244, 260, 304, 377, 101];
 
+const hamptonCoveHighlandsParByHole = [4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 3, 4, 4, 4, 5, 3, 5, 4];
+const hamptonCoveHighlandsHandicapByHole = [5, 15, 17, 9, 7, 1, 3, 13, 11, 4, 14, 16, 12, 2, 18, 10, 6, 8];
+const hamptonCoveHighlandsWomenHandicapByHole = [5, 9, 11, 15, 7, 1, 3, 17, 13, 14, 18, 6, 2, 8, 10, 16, 4, 12];
+const hamptonCoveHighlandsPurpleYardages = [409, 403, 550, 215, 412, 435, 453, 238, 526, 461, 206, 435, 415, 414, 539, 259, 621, 437];
+const hamptonCoveHighlandsOrangeYardages = [394, 372, 518, 183, 378, 406, 424, 190, 511, 434, 177, 347, 391, 382, 520, 211, 570, 398];
+const hamptonCoveHighlandsWhiteYardages = [372, 330, 452, 165, 334, 381, 387, 158, 444, 371, 154, 308, 336, 342, 470, 161, 541, 364];
+const hamptonCoveHighlandsGoldYardages = [347, 303, 445, 128, 285, 354, 341, 141, 416, 337, 138, 300, 320, 307, 431, 132, 480, 330];
+const hamptonCoveHighlandsTealYardages = [309, 303, 377, 94, 273, 336, 318, 94, 361, 257, 108, 265, 319, 298, 390, 101, 475, 304];
+
 window.OGSGolf.data.courses = [
   {
     id: "twelve-stones",
@@ -162,6 +171,42 @@ window.OGSGolf.data.courses = [
       white: buildTeeHoles(fightingJoeWhiteYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole),
       gold: buildTeeHoles(fightingJoeGoldYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole),
       teal: buildTeeHoles(fightingJoeTealYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole)
+    }
+  },
+  {
+    id: "hampton-cove-highlands",
+    name: "The Highlands at Hampton Cove",
+    par: 72,
+    scorecardSource: "https://www.rtjgolf.com/scorecards",
+    defaultTeeId: "white",
+    womenHandicapByHole: hamptonCoveHighlandsWomenHandicapByHole,
+    teeOrder: ["purple", "orange", "white", "gold", "teal"],
+    teeRatings: {
+      purple: buildTeeSummary("Purple", hamptonCoveHighlandsPurpleYardages, 76.2, 143, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 76.2, slopeRating: 143 }
+      }, hamptonCoveHighlandsParByHole),
+      orange: buildTeeSummary("Orange", hamptonCoveHighlandsOrangeYardages, 73.4, 138, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 73.4, slopeRating: 138 }
+      }, hamptonCoveHighlandsParByHole),
+      white: buildTeeSummary("White", hamptonCoveHighlandsWhiteYardages, 70.9, 130, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 70.9, slopeRating: 130 },
+        women: { courseRating: 76.9, slopeRating: 136 }
+      }, hamptonCoveHighlandsParByHole),
+      gold: buildTeeSummary("Gold", hamptonCoveHighlandsGoldYardages, 67.8, 126, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 67.8, slopeRating: 126 },
+        women: { courseRating: 73.7, slopeRating: 129 }
+      }, hamptonCoveHighlandsParByHole),
+      teal: buildTeeSummary("Teal", hamptonCoveHighlandsTealYardages, 65.0, 120, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 65.0, slopeRating: 120 },
+        women: { courseRating: 70.2, slopeRating: 120 }
+      }, hamptonCoveHighlandsParByHole)
+    },
+    tees: {
+      purple: buildTeeHoles(hamptonCoveHighlandsPurpleYardages, "Official RTJ Golf Trail scorecard", hamptonCoveHighlandsParByHole, hamptonCoveHighlandsHandicapByHole),
+      orange: buildTeeHoles(hamptonCoveHighlandsOrangeYardages, "Official RTJ Golf Trail scorecard", hamptonCoveHighlandsParByHole, hamptonCoveHighlandsHandicapByHole),
+      white: buildTeeHoles(hamptonCoveHighlandsWhiteYardages, "Official RTJ Golf Trail scorecard", hamptonCoveHighlandsParByHole, hamptonCoveHighlandsHandicapByHole),
+      gold: buildTeeHoles(hamptonCoveHighlandsGoldYardages, "Official RTJ Golf Trail scorecard", hamptonCoveHighlandsParByHole, hamptonCoveHighlandsHandicapByHole),
+      teal: buildTeeHoles(hamptonCoveHighlandsTealYardages, "Official RTJ Golf Trail scorecard", hamptonCoveHighlandsParByHole, hamptonCoveHighlandsHandicapByHole)
     }
   }
 ];
