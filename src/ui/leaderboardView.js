@@ -282,13 +282,6 @@ window.OGSGolf.ui.renderLeaderboard = function renderLeaderboard(elements, playe
   if (skinsEnabled) {
     const skinsSection = makeSection("Skins Leaderboard");
     if (skinsStandings.some((standing) => standing.skins.totalSkins > 0)) {
-      skinsSection.innerHTML += `
-        <div class="leaderboard-row">
-          <div>
-            <div class="player-name">Each skin is worth ${formatCurrency(payoutSummary.skins.valuePerSkin)}</div>
-          </div>
-        </div>
-      `;
       skinsStandings.forEach((standing) => renderSkinsRow(skinsSection, standing, payoutSummary));
     } else {
       skinsSection.innerHTML += `
