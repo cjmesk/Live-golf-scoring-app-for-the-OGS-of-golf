@@ -758,23 +758,9 @@ window.OGSGolf.state.createRoundState = function createRoundState(
     const skinSummary = getSkinSummary();
     const winners = Object.values(skinSummary).filter((item) => item.totalSkins > 0);
     const totalWinningSkins = winners.reduce((total, item) => total + item.totalSkins, 0);
-    const winningSkinUnits = winners
-      .flatMap((item) => (item.holesWonDetails || []).map((detail) => ({
-        playerId: item.player.id,
-        hole: detail.hole
-      })))
-      .sort((firstSkin, secondSkin) => {
-        if (firstSkin.hole !== secondSkin.hole) return firstSkin.hole - secondSkin.hole;
-        return firstSkin.playerId.localeCompare(secondSkin.playerId);
-      });
-    const skinDollarPayouts = allocateRoundedDollars(totalPot, winningSkinUnits.length);
-    const playerPayoutCents = {};
-
-    winningSkinUnits.forEach((skinUnit, index) => {
-      const skinPayoutCents = (skinDollarPayouts[index] || 0) * 100;
-      playerPayoutCents[skinUnit.playerId] =
-        (playerPayoutCents[skinUnit.playerId] || 0) + skinPayoutCents;
-    });
+    const equalPayoutPerSkin = totalWinningSkins > 0
+      ? roundMoney(totalPot / totalWinningSkins)
+      : 0;
 
     return {
       enabled,
@@ -783,16 +769,16 @@ window.OGSGolf.state.createRoundState = function createRoundState(
       totalPot,
       totalPotCents,
       totalWinningSkins,
-      valuePerSkin: totalWinningSkins > 0 ? roundMoney(totalPot / totalWinningSkins) : 0,
-      payoutPerSkin: skinDollarPayouts[0] || 0,
+      valuePerSkin: equalPayoutPerSkin,
+      payoutPerSkin: equalPayoutPerSkin,
       winners: winners.map((item) => ({
         playerId: item.player.id,
         playerName: item.player.name,
         totalSkins: item.totalSkins,
         holesWon: item.holesWon,
         holesWonDetails: item.holesWonDetails || [],
-        payout: centsToMoney(playerPayoutCents[item.player.id] || 0),
-        payoutCents: playerPayoutCents[item.player.id] || 0
+        payout: roundMoney(equalPayoutPerSkin * item.totalSkins),
+        payoutCents: moneyToCents(equalPayoutPerSkin * item.totalSkins)
       }))
     };
   }

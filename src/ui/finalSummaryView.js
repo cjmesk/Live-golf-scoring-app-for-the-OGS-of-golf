@@ -186,6 +186,9 @@ window.OGSGolf.ui.renderFinalSummary = function renderFinalSummary(elements, rou
         </section>` : ""}
         ${hasSkinsPayout ? `<section class="points-category">
           <h4>Skins</h4>
+          <div class="payout-subtitle">${payoutSummary.skins.totalWinningSkins > 0
+            ? `Each skin is worth ${formatCurrency(payoutSummary.skins.valuePerSkin)}`
+            : "No winning skins to value"}</div>
           <div class="summary-list">${skinsRows}</div>
         </section>` : ""}
         <section class="points-category">
