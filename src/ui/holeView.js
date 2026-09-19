@@ -47,7 +47,7 @@ window.OGSGolf.ui.renderHoleView = function renderHoleView(elements, course, pla
     playerRow.className = `hole-player scorekeeper-player${isDnf ? " is-dnf-player" : ""}`;
     playerRow.innerHTML = `
       <div class="hole-player-info">
-        <div class="player-name">${player.name}</div>
+        <button type="button" class="player-name player-scorecard-link" data-open-player-scorecard="${player.id}" data-scorecard-return-label="Return to Scoring">${player.name}</button>
         ${matchSummary?.settings.enabled ? `<div class="player-details">${player.matchTeam === "A" ? matchSummary.settings.teamALabel : matchSummary.settings.teamBLabel}${matchSummary.settings.scoring === "net" ? ` | Playing HCP ${matchSummary.playingHandicaps[player.id]}` : " | Gross"}</div>` : ""}
         ${isDnf ? `<div class="player-details dnf-status">${roundState.formatDnfStatus(player)}</div>` : ""}
       </div>
