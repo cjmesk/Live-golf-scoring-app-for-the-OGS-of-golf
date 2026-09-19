@@ -4250,7 +4250,10 @@ document.addEventListener("click", (event) => {
 
   if (scorecardLink) {
     event.preventDefault();
-    openPlayerScorecard(scorecardLink.dataset.openPlayerScorecard);
+    openPlayerScorecard(
+      scorecardLink.dataset.openPlayerScorecard,
+      scorecardLink.dataset.scorecardReturnLabel || ""
+    );
     return;
   }
 
