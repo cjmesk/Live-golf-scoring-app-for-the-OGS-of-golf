@@ -64,6 +64,14 @@ const hamptonCoveHighlandsWhiteYardages = [372, 330, 452, 165, 334, 381, 387, 15
 const hamptonCoveHighlandsGoldYardages = [347, 303, 445, 128, 285, 354, 341, 141, 416, 337, 138, 300, 320, 307, 431, 132, 480, 330];
 const hamptonCoveHighlandsTealYardages = [309, 303, 377, 94, 273, 336, 318, 94, 361, 257, 108, 265, 319, 298, 390, 101, 475, 304];
 
+const saddleCreekParByHole = [5,4,4,4,3,4,3,4,5,4,4,5,3,4,4,4,3,5];
+const saddleCreekHandicapByHole = [1,13,5,3,17,11,7,15,9,4,2,10,8,18,6,12,14,16];
+const saddleCreekWomenHandicapByHole = [3,13,7,9,17,11,5,15,1,4,10,2,14,16,8,12,18,6];
+const saddleCreekBlueYardages = [556,365,417,389,143,373,164,364,531,383,428,533,162,359,424,430,159,533];
+const saddleCreekWhiteYardages = [521,340,382,374,125,349,149,342,495,363,409,505,139,338,410,407,142,513];
+const saddleCreekGoldYardages = [490,318,339,344,109,315,132,335,460,334,379,474,118,313,363,385,123,490];
+const saddleCreekRedYardages = [419,252,291,293,91,279,118,255,408,278,344,451,98,261,320,300,82,460];
+
 window.OGSGolf.data.courses = [
   {
     id: "twelve-stones",
@@ -209,6 +217,26 @@ window.OGSGolf.data.courses = [
       teal: buildTeeHoles(hamptonCoveHighlandsTealYardages, "Official RTJ Golf Trail scorecard", hamptonCoveHighlandsParByHole, hamptonCoveHighlandsHandicapByHole)
     }
   }
-];
+  ,{
+    id: "saddle-creek",
+    name: "Saddle Creek Golf Club",
+    par: 72,
+    defaultTeeId: "white",
+    womenHandicapByHole: saddleCreekWomenHandicapByHole,
+    teeOrder: ["blue","white","gold","red"],
+    teeRatings: {
+      blue: buildTeeSummary("Blue", saddleCreekBlueYardages, 72.4, 137, "Saddle Creek scorecard", { men: { courseRating: 72.4, slopeRating: 137 } }, saddleCreekParByHole),
+      white: buildTeeSummary("White", saddleCreekWhiteYardages, 70.6, 130, "Saddle Creek scorecard", { men: { courseRating: 70.6, slopeRating: 130 } }, saddleCreekParByHole),
+      gold: buildTeeSummary("Gold", saddleCreekGoldYardages, 68.3, 124, "Saddle Creek scorecard", { men: { courseRating: 68.3, slopeRating: 124 } }, saddleCreekParByHole),
+      red: buildTeeSummary("Red", saddleCreekRedYardages, 69.2, 118, "Saddle Creek scorecard", { women: { courseRating: 69.2, slopeRating: 118 } }, saddleCreekParByHole)
+    },
+    tees: {
+      blue: buildTeeHoles(saddleCreekBlueYardages, "Saddle Creek scorecard", saddleCreekParByHole, saddleCreekHandicapByHole),
+      white: buildTeeHoles(saddleCreekWhiteYardages, "Saddle Creek scorecard", saddleCreekParByHole, saddleCreekHandicapByHole),
+      gold: buildTeeHoles(saddleCreekGoldYardages, "Saddle Creek scorecard", saddleCreekParByHole, saddleCreekHandicapByHole),
+      red: buildTeeHoles(saddleCreekRedYardages, "Saddle Creek scorecard", saddleCreekParByHole, saddleCreekWomenHandicapByHole)
+    }
+  }
+]; 
 
 window.OGSGolf.data.course = window.OGSGolf.data.courses[0];
