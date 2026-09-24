@@ -64,6 +64,15 @@ const hamptonCoveHighlandsWhiteYardages = [372, 330, 452, 165, 334, 381, 387, 15
 const hamptonCoveHighlandsGoldYardages = [347, 303, 445, 128, 285, 354, 341, 141, 416, 337, 138, 300, 320, 307, 431, 132, 480, 330];
 const hamptonCoveHighlandsTealYardages = [309, 303, 377, 94, 273, 336, 318, 94, 361, 257, 108, 265, 319, 298, 390, 101, 475, 304];
 
+const hamptonCoveRiverParByHole = [5, 3, 4, 4, 4, 3, 4, 5, 4, 5, 4, 4, 4, 3, 5, 3, 4, 4];
+const hamptonCoveRiverHandicapByHole = [3, 17, 9, 13, 1, 15, 7, 5, 11, 18, 8, 2, 16, 6, 12, 14, 4, 10];
+const hamptonCoveRiverWomenHandicapByHole = [3, 17, 9, 5, 11, 15, 1, 13, 7, 12, 10, 2, 14, 18, 6, 16, 4, 8];
+const hamptonCoveRiverPurpleYardages = [556, 207, 467, 447, 476, 214, 433, 627, 438, 572, 437, 454, 421, 208, 600, 187, 451, 473];
+const hamptonCoveRiverOrangeYardages = [505, 186, 404, 375, 388, 196, 393, 566, 394, 535, 398, 418, 382, 186, 519, 176, 378, 365];
+const hamptonCoveRiverWhiteYardages = [463, 165, 347, 342, 350, 158, 360, 540, 348, 486, 353, 379, 314, 165, 494, 163, 350, 334];
+const hamptonCoveRiverGoldYardages = [463, 150, 292, 320, 330, 145, 310, 499, 325, 440, 315, 345, 300, 120, 465, 140, 319, 324];
+const hamptonCoveRiverTealYardages = [431, 135, 267, 299, 285, 135, 305, 421, 318, 428, 293, 340, 276, 112, 426, 132, 314, 283];
+
 const saddleCreekParByHole = [5,4,4,4,3,4,3,4,5,4,4,5,3,4,4,4,3,5];
 const saddleCreekHandicapByHole = [1,13,5,3,17,11,7,15,9,4,2,10,8,18,6,12,14,16];
 const saddleCreekWomenHandicapByHole = [3,13,7,9,17,11,5,15,1,4,10,2,14,16,8,12,18,6];
@@ -216,8 +225,8 @@ window.OGSGolf.data.courses = [
       gold: buildTeeHoles(hamptonCoveHighlandsGoldYardages, "Official RTJ Golf Trail scorecard", hamptonCoveHighlandsParByHole, hamptonCoveHighlandsHandicapByHole),
       teal: buildTeeHoles(hamptonCoveHighlandsTealYardages, "Official RTJ Golf Trail scorecard", hamptonCoveHighlandsParByHole, hamptonCoveHighlandsHandicapByHole)
     }
-  }
-  ,{
+  },
+  {
     id: "saddle-creek",
     name: "Saddle Creek Golf Club",
     par: 72,
@@ -236,7 +245,43 @@ window.OGSGolf.data.courses = [
       gold: buildTeeHoles(saddleCreekGoldYardages, "Saddle Creek scorecard", saddleCreekParByHole, saddleCreekHandicapByHole),
       red: buildTeeHoles(saddleCreekRedYardages, "Saddle Creek scorecard", saddleCreekParByHole, saddleCreekWomenHandicapByHole)
     }
+  },
+  {
+    id: "hampton-cove-river",
+    name: "The River at Hampton Cove",
+    par: 72,
+    scorecardSource: "https://www.rtjgolf.com/scorecards",
+    defaultTeeId: "white",
+    womenHandicapByHole: hamptonCoveRiverWomenHandicapByHole,
+    teeOrder: ["purple", "orange", "white", "gold", "teal"],
+    teeRatings: {
+      purple: buildTeeSummary("Purple", hamptonCoveRiverPurpleYardages, 77.5, 140, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 77.5, slopeRating: 140 }
+      }, hamptonCoveRiverParByHole),
+      orange: buildTeeSummary("Orange", hamptonCoveRiverOrangeYardages, 73.1, 136, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 73.1, slopeRating: 136 }
+      }, hamptonCoveRiverParByHole),
+      white: buildTeeSummary("White", hamptonCoveRiverWhiteYardages, 70.2, 130, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 70.2, slopeRating: 130 },
+        women: { courseRating: 76.1, slopeRating: 140 }
+      }, hamptonCoveRiverParByHole),
+      gold: buildTeeSummary("Gold", hamptonCoveRiverGoldYardages, 67.9, 119, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 67.9, slopeRating: 119 },
+        women: { courseRating: 73.4, slopeRating: 129 }
+      }, hamptonCoveRiverParByHole),
+      teal: buildTeeSummary("Teal", hamptonCoveRiverTealYardages, 66.2, 110, "Official RTJ Golf Trail scorecard", {
+        men: { courseRating: 66.2, slopeRating: 110 },
+        women: { courseRating: 70.8, slopeRating: 126 }
+      }, hamptonCoveRiverParByHole)
+    },
+    tees: {
+      purple: buildTeeHoles(hamptonCoveRiverPurpleYardages, "Official RTJ Golf Trail scorecard", hamptonCoveRiverParByHole, hamptonCoveRiverHandicapByHole),
+      orange: buildTeeHoles(hamptonCoveRiverOrangeYardages, "Official RTJ Golf Trail scorecard", hamptonCoveRiverParByHole, hamptonCoveRiverHandicapByHole),
+      white: buildTeeHoles(hamptonCoveRiverWhiteYardages, "Official RTJ Golf Trail scorecard", hamptonCoveRiverParByHole, hamptonCoveRiverHandicapByHole),
+      gold: buildTeeHoles(hamptonCoveRiverGoldYardages, "Official RTJ Golf Trail scorecard", hamptonCoveRiverParByHole, hamptonCoveRiverHandicapByHole),
+      teal: buildTeeHoles(hamptonCoveRiverTealYardages, "Official RTJ Golf Trail scorecard", hamptonCoveRiverParByHole, hamptonCoveRiverHandicapByHole)
+    }
   }
-]; 
+];
 
 window.OGSGolf.data.course = window.OGSGolf.data.courses[0];
