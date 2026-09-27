@@ -55,6 +55,15 @@ const fightingJoeWhiteYardages = [512, 370, 373, 326, 160, 408, 524, 375, 145, 4
 const fightingJoeGoldYardages = [400, 347, 324, 313, 137, 330, 467, 332, 118, 357, 310, 450, 153, 319, 326, 370, 416, 126];
 const fightingJoeTealYardages = [390, 302, 316, 279, 133, 325, 408, 283, 101, 256, 255, 441, 136, 244, 260, 304, 377, 101];
 
+const schoolmasterParByHole = [4, 3, 4, 5, 4, 3, 4, 4, 5, 3, 5, 5, 4, 4, 4, 3, 4, 4];
+const schoolmasterHandicapByHole = [13, 17, 7, 3, 9, 15, 11, 5, 1, 16, 4, 2, 6, 12, 8, 18, 10, 14];
+const schoolmasterBlackYardages = [453, 238, 477, 632, 472, 265, 459, 509, 681, 226, 589, 618, 455, 417, 447, 197, 443, 393];
+const schoolmasterPurpleYardages = [421, 196, 450, 608, 452, 231, 405, 492, 645, 202, 559, 568, 424, 390, 414, 157, 409, 363];
+const schoolmasterOrangeYardages = [382, 178, 421, 568, 409, 208, 390, 435, 604, 168, 521, 527, 402, 368, 395, 146, 390, 338];
+const schoolmasterWhiteYardages = [340, 146, 393, 549, 373, 198, 366, 406, 570, 156, 489, 501, 358, 340, 347, 135, 347, 318];
+const schoolmasterGoldYardages = [325, 141, 362, 504, 360, 178, 339, 355, 492, 140, 464, 479, 340, 320, 332, 108, 319, 290];
+const schoolmasterTealYardages = [311, 131, 337, 478, 315, 158, 268, 325, 485, 122, 381, 465, 307, 265, 267, 93, 283, 233];
+
 const hamptonCoveHighlandsParByHole = [4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 3, 4, 4, 4, 5, 3, 5, 4];
 const hamptonCoveHighlandsHandicapByHole = [5, 15, 17, 9, 7, 1, 3, 13, 11, 4, 14, 16, 12, 2, 18, 10, 6, 8];
 const hamptonCoveHighlandsWomenHandicapByHole = [5, 9, 11, 15, 7, 1, 3, 17, 13, 14, 18, 6, 2, 8, 10, 16, 4, 12];
@@ -189,6 +198,27 @@ window.OGSGolf.data.courses = [
       gold: buildTeeHoles(fightingJoeGoldYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole),
       teal: buildTeeHoles(fightingJoeTealYardages, "Official RTJ Golf Trail scorecard", fightingJoeParByHole, fightingJoeHandicapByHole)
     }
+  },
+  {
+    id: "schoolmaster",
+    name: "The Schoolmaster at The Shoals",
+    par: 72,
+    scorecardSource: "https://www.rtjgolf.com/scorecards/",
+    defaultTeeId: "white",
+    teeOrder: ["black", "purple", "orange", "white", "gold", "teal"],
+    teeRatings: {
+      black: buildTeeSummary("Black", schoolmasterBlackYardages, 77.6, 148, "Official RTJ Golf Trail scorecard", { men: { courseRating: 77.6, slopeRating: 148 } }, schoolmasterParByHole),
+      purple: buildTeeSummary("Purple", schoolmasterPurpleYardages, 74.6, 141, "Official RTJ Golf Trail scorecard", { men: { courseRating: 74.6, slopeRating: 141 } }, schoolmasterParByHole),
+      orange: buildTeeSummary("Orange", schoolmasterOrangeYardages, 72.2, 136, "Official RTJ Golf Trail scorecard", { men: { courseRating: 72.2, slopeRating: 136 } }, schoolmasterParByHole),
+      white: buildTeeSummary("White", schoolmasterWhiteYardages, 69.2, 130, "Official RTJ Golf Trail scorecard", { men: { courseRating: 69.2, slopeRating: 130 } }, schoolmasterParByHole),
+      gold: buildTeeSummary("Gold", schoolmasterGoldYardages, 67.7, 128, "Official RTJ Golf Trail scorecard", { men: { courseRating: 67.7, slopeRating: 128 } }, schoolmasterParByHole),
+      teal: buildTeeSummary("Teal", schoolmasterTealYardages, 70.2, 126, "Official RTJ Golf Trail scorecard", { women: { courseRating: 70.2, slopeRating: 126 } }, schoolmasterParByHole)
+    },
+    tees: Object.fromEntries([
+      ["black", schoolmasterBlackYardages], ["purple", schoolmasterPurpleYardages],
+      ["orange", schoolmasterOrangeYardages], ["white", schoolmasterWhiteYardages],
+      ["gold", schoolmasterGoldYardages], ["teal", schoolmasterTealYardages]
+    ].map(([tee, yards]) => [tee, buildTeeHoles(yards, "Official RTJ Golf Trail scorecard", schoolmasterParByHole, schoolmasterHandicapByHole)]))
   },
   {
     id: "hampton-cove-highlands",
