@@ -3498,7 +3498,7 @@ async function savePlayer(event) {
   }
 
   if (!editingId && members.length >= maxRosterSize) {
-    elements.playerManagementStatus.textContent = "The roster already has 50 members.";
+    elements.playerManagementStatus.textContent = `The roster already has ${maxRosterSize} members.`;
     return;
   }
 
