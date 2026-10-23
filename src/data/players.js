@@ -1,7 +1,7 @@
 window.OGSGolf = window.OGSGolf || {};
 window.OGSGolf.data = window.OGSGolf.data || {};
 
-window.OGSGolf.data.maxRosterSize = 50;
+window.OGSGolf.data.maxRosterSize = 100;
 
 window.OGSGolf.data.players = [
   {
