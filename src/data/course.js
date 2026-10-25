@@ -1,8 +1,9 @@
 window.OGSGolf = window.OGSGolf || {};
 window.OGSGolf.data = window.OGSGolf.data || {};
 
+// Twelve Stones hole rankings and yardages verified against the commissioner's scorecard photo, 2026-10-25.
 const twelveStonesParByHole = [4, 3, 5, 4, 4, 3, 5, 4, 4, 5, 4, 4, 4, 5, 3, 4, 3, 4];
-const twelveStonesHandicapByHole = [6, 4, 8, 14, 18, 12, 2, 16, 10, 9, 7, 5, 13, 3, 17, 11, 15, 1];
+const twelveStonesHandicapByHole = [6, 4, 8, 16, 12, 10, 2, 18, 14, 9, 5, 7, 15, 3, 17, 11, 13, 1];
 
 function buildTeeHoles(yardages, status = "verified", parByHole = twelveStonesParByHole, handicapByHole = twelveStonesHandicapByHole) {
   return parByHole.map((par, index) => ({
@@ -34,10 +35,10 @@ function buildTeeSummary(label, yardages, courseRating, slopeRating, status = "v
   };
 }
 
-const blackYardages = [424, 203, 537, 375, 295, 228, 534, 367, 395, 539, 434, 388, 319, 589, 165, 407, 192, 436];
-const silverYardages = [396, 183, 520, 352, 245, 198, 512, 330, 371, 515, 404, 362, 291, 549, 153, 398, 178, 401];
-const whiteYardages = [364, 155, 454, 331, 201, 184, 485, 304, 363, 474, 378, 338, 267, 492, 142, 376, 167, 367];
-const goldYardages = [331, 131, 437, 324, 195, 164, 442, 263, 324, 444, 373, 315, 237, 448, 136, 351, 161, 338];
+const blackYardages = [424, 203, 537, 375, 338, 228, 534, 367, 408, 539, 434, 388, 319, 626, 165, 407, 192, 436];
+const silverYardages = [396, 183, 520, 352, 295, 198, 512, 330, 381, 515, 404, 362, 291, 590, 153, 398, 178, 401];
+const whiteYardages = [364, 155, 454, 331, 245, 184, 485, 304, 355, 474, 378, 338, 267, 550, 142, 376, 167, 367];
+const goldYardages = [331, 131, 437, 324, 195, 164, 442, 263, 324, 444, 373, 315, 237, 492, 136, 351, 161, 338];
 const redYardages = [287, 107, 419, 290, 188, 139, 400, 229, 319, 418, 322, 271, 221, 441, 109, 311, 147, 309];
 
 const parkMammothParByHole = [4, 4, 5, 4, 3, 4, 3, 4, 4, 4, 3, 4, 4, 4, 4, 3, 5, 4];
