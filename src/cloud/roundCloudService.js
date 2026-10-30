@@ -1196,3 +1196,33 @@ window.OGSGolf.cloud.roundCloudService.markRoundCompletedIfAllGroupsComplete = a
     return { ok: false, reason: "failed", completed: false, groupChecks };
   }
 };
+
+
+// Update only the saved index; never copy round settings into the roster.
+window.OGSGolf.cloud.roundCloudService.updatePlayerHandicap = async function(playerId, handicapIndex) {
+  const config = window.OGSGolf.cloud.supabaseConfig;
+  try {
+    if (!config.url || !config.anonKey) throw new Error("Cloud not configured");
+    const response = await fetch(
+      config.url + "/rest/v1/players?id=eq." + encodeURIComponent(playerId),
+      {
+        method: "PATCH",
+        headers: {
+          apikey: config.anonKey,
+          Authorization: "Bearer " + config.anonKey,
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({ handicap_index: handicapIndex })
+      }
+    );
+    if (!response.ok) throw new Error("Index save failed");
+    const rows = await response.json();
+    if (!rows.some(row => row.id === playerId && Number(row.handicap_index) === handicapIndex)) {
+      throw new Error("Index save was not confirmed");
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: "Saved on this device, but the shared index did not save. Please retry the index change." };
+  }
+};

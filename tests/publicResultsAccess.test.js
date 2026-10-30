@@ -40,8 +40,9 @@ assert(
 
 const htmlSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 assert(
-  htmlSource.includes("src/app.js?v=20260917-authoritative-cloud"),
+  htmlSource.includes("src/app.js?v=20261030-current-index"),
   "The active-round leaderboard fix has a new mobile cache version"
 );
 
 console.log("Public leaderboard access test passed.");
+

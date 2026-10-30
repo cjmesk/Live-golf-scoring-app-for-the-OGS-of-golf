@@ -114,6 +114,9 @@
         <p class="player-details">Choose the active group. The player starts on that group&apos;s current hole; earlier holes stay blank.</p>
         <label class="field-label" for="latePlayerSelect">Player</label>
         <select id="latePlayerSelect" class="field-control"></select>
+        <label class="field-label" for="latePlayerHandicap">Current Handicap Index</label>
+        <input id="latePlayerHandicap" class="field-control" type="text" inputmode="decimal" placeholder="8.5 or +1.4">
+        <span class="player-details">Saved for this player and future rounds.</span>
         <label class="field-label" for="latePlayerGroupSelect">Active Group</label>
         <select id="latePlayerGroupSelect" class="field-control"></select>
         <label class="field-label" for="latePlayerTeeSelect">Tee</label>
@@ -427,7 +430,7 @@
         </div>
         <label class="field-label" for="newHandicapIndex">New GHIN Index</label>
         <input id="newHandicapIndex" class="field-control" type="text" inputmode="decimal" placeholder="12.2 or +1.4">
-        <span class="player-details">For a plus golfer, enter the index with a plus sign—for example, +1.4.</span>
+        <span class="player-details">Index changes during round setup or an active round also update the saved player index. For a plus golfer, enter the index with a plus sign—for example, +1.4.</span>
         <div class="dnf-confirm-actions">
           <button id="cancelHandicapAdjust" type="button" class="secondary-button">Cancel</button>
           <button id="saveHandicapAdjust" type="button" class="save-button">Save</button>
@@ -588,9 +591,9 @@
         <label class="field-label" for="playerGhin">GHIN</label>
         <input id="playerGhin" class="field-control" type="text" inputmode="numeric">
 
-        <label class="field-label" for="playerHandicap">Handicap Index</label>
+        <label class="field-label" for="playerHandicap">Current Handicap Index</label>
         <input id="playerHandicap" class="field-control" type="text" inputmode="decimal" placeholder="12.2 or +1.4" required>
-        <span class="player-details">For a plus golfer, enter the index with a plus sign—for example, +1.4.</span>
+        <span class="player-details">Index changes during round setup or an active round also update the saved player index. For a plus golfer, enter the index with a plus sign—for example, +1.4.</span>
 
         <label class="field-label" for="playerTee">Preferred Tee</label>
         <select id="playerTee" class="field-control">
@@ -714,10 +717,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="src/cloud/supabaseConfig.js?v=20260709-v098-menu"></script>
   <script src="src/cloud/supabaseClient.js?v=20260709-v098-menu"></script>
-  <script src="src/cloud/roundCloudService.js?v=20260917-authoritative-cloud"></script>
-  <script src="src/ui/dom.js?v=20260829-setup-draft"></script>
+  <script src="src/cloud/roundCloudService.js?v=20261030-current-index"></script>
+  <script src="src/ui/dom.js?v=20261030-current-index"></script>
   <script src="src/ui/formatters.js?v=20260823-plus-handicap"></script>
-  <script src="src/ui/setupView.js?v=20260917-course-default-tee"></script>
+  <script src="src/ui/setupView.js?v=20261030-current-index"></script>
   <script src="src/ui/holeView.js?v=20260919-scorekeeper-scorecards"></script>
   <script src="src/ui/leaderboardView.js?v=20260917-skins-totals-only"></script>
   <script src="src/ui/pointsPayoutView.js?v=20260710-points-quota"></script>
@@ -728,6 +731,7 @@
   <script src="src/ui/playerManagementView.js?v=20260823-plus-handicap"></script>
   <script src="src/ui/groupSetupView.js?v=20260829-preserve-groups"></script>
   <script src="src/ui/eventSummaryView.js?v=20260829-pre-round-review"></script>
-  <script src="src/app.js?v=20261023-roster-100"></script>
+  <script src="src/app.js?v=20261030-current-index"></script>
 </body>
 </html>
+

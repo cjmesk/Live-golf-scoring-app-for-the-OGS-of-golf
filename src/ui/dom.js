@@ -125,6 +125,7 @@ window.OGSGolf.ui.getElements = function getElements() {
     commissionerGroupSelectionDashboard: document.querySelector("#commissionerGroupSelectionDashboard"),
     latePlayerPanel: document.querySelector("#latePlayerPanel"),
     latePlayerSelect: document.querySelector("#latePlayerSelect"),
+    latePlayerHandicap: document.querySelector("#latePlayerHandicap"),
     latePlayerGroupSelect: document.querySelector("#latePlayerGroupSelect"),
     latePlayerTeeSelect: document.querySelector("#latePlayerTeeSelect"),
     latePlayerSkins: document.querySelector("#latePlayerSkins"),
@@ -230,3 +231,4 @@ window.OGSGolf.ui.getElements = function getElements() {
     playerManagementList: document.querySelector("#playerManagementList")
   };
 };
+

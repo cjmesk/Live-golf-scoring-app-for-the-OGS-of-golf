@@ -1011,6 +1011,11 @@ function renderLatePlayerForm() {
     : `<option value="">No active roster players available</option>`;
   elements.latePlayerGroupSelect.innerHTML = groupOptions || `<option value="">No active groups available</option>`;
   elements.latePlayerTeeSelect.innerHTML = teeOptions;
+  elements.latePlayerHandicap.value = candidates.length ? formatHandicapIndex(candidates[0].handicap) : "";
+  elements.latePlayerSelect.onchange = () => {
+    const member = members.find(item => item.id === elements.latePlayerSelect.value);
+    elements.latePlayerHandicap.value = member ? formatHandicapIndex(member.handicap) : "";
+  };
   elements.latePlayerSelect.disabled = !formAvailable;
   elements.latePlayerGroupSelect.disabled = !formAvailable;
   elements.latePlayerTeeSelect.disabled = !formAvailable;
@@ -1318,16 +1323,22 @@ async function saveLatePlayer() {
     return;
   }
 
+  const handicapIndex = parseHandicapIndex(elements.latePlayerHandicap.value);
+  if (handicapIndex === null || handicapIndex < -10 || handicapIndex > 54) {
+    elements.latePlayerStatus.textContent = "Enter a valid handicap index.";
+    return;
+  }
   elements.saveLatePlayer.disabled = true;
   elements.latePlayerStatus.textContent = "Adding player to active round...";
 
   const player = buildLateRoundPlayer(
-    member,
+    { ...member, handicap: handicapIndex, handicapIndex },
     teeId,
     elements.latePlayerSkins.checked,
     elements.latePlayerPoints.checked,
     groupIndex
   );
+  const indexResult = await saveCurrentPlayerIndex(member.id, handicapIndex);
   const preservedRound = roundState.getAutoSaveExport();
   const previousGroupIndex = currentGroupIndex;
 
@@ -1406,7 +1417,7 @@ async function saveLatePlayer() {
     ? (rowResult.message || `${successMessage} Cloud round-player save failed.`)
     : !savedRound?.cloudUpdatedAt
     ? `${successMessage} Cloud active-round save did not confirm.`
-    : successMessage;
+    : successMessage + (indexResult.ok ? " Current index saved for future rounds." : " " + indexResult.message);
 }
 
 async function showCommissionerGroupSelection({ refresh = true } = {}) {
@@ -2143,13 +2154,36 @@ async function updatePlayerSavedHoleScoresForDerivedValues(player) {
   return { ok: true };
 }
 
+let handicapSaveQueue = Promise.resolve();
+
+function saveCurrentPlayerIndex(playerId, handicapIndex) {
+  if (!commissionerMode || !Number.isFinite(handicapIndex) || handicapIndex < -10 || handicapIndex > 54) {
+    return Promise.resolve({ ok: false, message: "Enter a valid handicap index." });
+  }
+  // Copy the roster record so historical round snapshots are never mutated.
+  members = members.map(member => member.id === playerId
+    ? { ...member, handicap: handicapIndex, handicapIndex }
+    : member);
+  playerStorage.saveAll(members);
+  const save = handicapSaveQueue.then(() => roundCloudService.updatePlayerHandicap(playerId, handicapIndex));
+  handicapSaveQueue = save.catch(() => {});
+  return save;
+}
+
+elements.memberList.onHandicapIndexChange = async (playerId, handicapIndex) => {
+  const result = await saveCurrentPlayerIndex(playerId, handicapIndex);
+  elements.modeStatus.textContent = result.ok
+    ? "Current index saved for Player Management and future rounds."
+    : result.message;
+};
+
 async function saveHandicapAdjust() {
   if (!commissionerMode || !roundState || !pendingHandicapPlayerId) return;
 
   const player = selectedPlayers.find((item) => item.id === pendingHandicapPlayerId);
   const newHandicapIndex = parseHandicapIndex(elements.newHandicapIndex.value);
 
-  if (!player || newHandicapIndex === null) {
+  if (!player || newHandicapIndex === null || newHandicapIndex < -10 || newHandicapIndex > 54) {
     elements.handicapAdjustStatus.textContent = "Enter a valid GHIN index.";
     return;
   }
@@ -2166,6 +2200,7 @@ async function saveHandicapAdjust() {
   }
 
   syncActiveRoundPlayerSnapshot(update.player);
+  const indexResult = await saveCurrentPlayerIndex(player.id, newHandicapIndex);
 
   const roundPlayerResult = await roundCloudService.upsertRoundPlayer(buildRoundPlayerCloudRow(update.player));
 
@@ -2194,7 +2229,7 @@ async function saveHandicapAdjust() {
   elements.saveStatusMessage.textContent =
     `${player.name}\nRound GHIN changed from ${formatHandicapIndex(update.previousHandicapIndex)} to ${formatHandicapIndex(update.newHandicapIndex)}`
     + `\nCourse Handicap changed from ${formatHandicapIndex(update.previousCourseHandicap)} to ${formatHandicapIndex(update.newCourseHandicap)}`
-    + "\nThis change applies to this round only.";
+    + (indexResult.ok ? "\nCurrent index saved for Player Management and future rounds." : "\n" + indexResult.message);
 }
 
 async function saveTeeChange() {
@@ -4603,3 +4638,4 @@ elements.playerManagementList.addEventListener("click", (event) => {
   elements.playerManagementStatus.textContent = `Editing ${player.name}.`;
   elements.playerForm.scrollIntoView({ behavior: "auto", block: "start" });
 });
+

@@ -157,8 +157,8 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
         </label>
         ${isPlayingToday ? `
           <label class="tee-select-label">
-            <span>Round Index</span>
-            <input class="field-control" data-round-handicap-for="${member.id}" type="text" inputmode="decimal" value="${formatSetupHandicapIndex(roundHandicap)}" aria-label="Round handicap index for ${member.name}">
+            <span>Current Index (saved for future rounds)</span>
+            <input class="field-control" data-round-handicap-for="${member.id}" type="text" inputmode="decimal" value="${formatSetupHandicapIndex(roundHandicap)}" aria-label="Current handicap index for ${member.name}">
           </label>
           <label class="tee-select-label">
             <span>Playing Group</span>
@@ -266,6 +266,7 @@ window.OGSGolf.ui.renderSetupView = function renderSetupView(elements, courses, 
       } else {
         roundHandicapOverrides.set(roundHandicapInput.dataset.roundHandicapFor, parsedHandicap);
         roundHandicapInput.value = formatSetupHandicapIndex(parsedHandicap);
+        elements.memberList.onHandicapIndexChange?.(roundHandicapInput.dataset.roundHandicapFor, parsedHandicap);
       }
     }
 
@@ -434,3 +435,4 @@ window.OGSGolf.ui.renderRoundSettingsSummary = function renderRoundSettingsSumma
     </div>
   `;
 };
+
